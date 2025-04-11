@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <linux/limits.h>
+#include <time.h>
 
 #include "bdu.h"
 #include "queue.h"
@@ -215,14 +216,22 @@ int compare_dentries(const void* a, const void* b)
 				: (dentry_b->bytes == dentry_a->bytes ? 0 : -1);
 }
  
-void sort_dentries(struct dir_entry *head)
+void sort_dentries(struct dir_entry *head, int depth)
 {
 	int i;
 
+	/**
+	** we only sort the the children displayed.
+	** ex. if --max-depth=1 then we sort only the first level of children, 
+	** since the rest is not displayed, no need to sort it
+	**/
+	if (depth == max_depth)
+		return;
+	
 	if (head->children_len > 0) {
 		qsort(head->children, head->children_len, sizeof(struct dir_entry *), compare_dentries);
 		for (i=0;i<head->children_len;i++) {
-			sort_dentries(head->children[i]);
+			sort_dentries(head->children[i], ++depth);
 		}
 	}
 }
@@ -298,6 +307,8 @@ int main(int argc, char *argv[])
 	pthread_t threads[NUM_THREADS];
 	struct queue_list *list = NULL;
 	
+	time_t start = time(NULL);
+
 	ret = parse_args(argc, argv);
 
 	if (ret < 0) {
@@ -331,12 +342,16 @@ int main(int argc, char *argv[])
 
 	printf("-------------------------------------------\n");
 
-	sort_dentries(root_entry);
+	sort_dentries(root_entry, 0);
 	print_dentries(root_entry, 0);
+
+    time_t end = time(NULL);
+    double elapsed = difftime(end, start);
 
 	printf("-------------------------------------------\n");
 	printf("Number of threads used: %d\n", NUM_THREADS);
 	printf("Active workers at the end: %d\n", active_workers);
+	printf("Took: %.2f seconds\n", elapsed);
 
 	return 0;
 }
