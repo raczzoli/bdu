@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <getopt.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <pthread.h>
@@ -11,14 +12,32 @@
 
 #define NUM_THREADS 12
 
-char *root_path = "/home/rng89/";
+char root_path[PATH_MAX];
 int max_depth = 1;
+
 size_t sizeB = 0;
 
 int active_workers = 0;
 
 pthread_mutex_t stats_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t active_workers_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+struct option cmdline_options[] =
+	{
+		/* These options set a flag. */
+		//{"verbose", no_argument,       &verbose_flag, 1},
+		//{"brief",   no_argument,       &verbose_flag, 0},
+		/* These options don’t set a flag.
+			We distinguish them by their indices. */
+		{"max-depth",     required_argument, NULL, 'd'},
+		/*
+		{"append",  no_argument,       0, 'b'},
+		{"delete",  required_argument, 0, 'd'},
+		{"create",  required_argument, 0, 'c'},
+		{"file",    required_argument, 0, 'f'},
+		*/
+		{0, 0, 0, 0}
+	};
 
 void increment_active_workers()
 {
@@ -186,6 +205,28 @@ void print_size(long int bytes)
 	printf("%7.2f%s ", fin_size, units[unit_cntr]);
 }
 
+int compare_dentries(const void* a, const void* b) 
+{
+	struct dir_entry *dentry_a = *(struct dir_entry **)a;
+    struct dir_entry *dentry_b = *(struct dir_entry **)b;
+
+	return dentry_b->bytes > dentry_a->bytes 
+				? 1 
+				: (dentry_b->bytes == dentry_a->bytes ? 0 : -1);
+}
+ 
+void sort_dentries(struct dir_entry *head)
+{
+	int i;
+
+	if (head->children_len > 0) {
+		qsort(head->children, head->children_len, sizeof(struct dir_entry *), compare_dentries);
+		for (i=0;i<head->children_len;i++) {
+			sort_dentries(head->children[i]);
+		}
+	}
+}
+
 void print_dentries(struct dir_entry *head, int depth) 
 {	
 	int i=0;
@@ -204,18 +245,67 @@ void print_dentries(struct dir_entry *head, int depth)
 		}
 }
 
-
-int main()
+int parse_args(int argc, char *argv[])
 {
+	int option_index = 0;
+	int c;
+
+	while (1) {
+		c = getopt_long (argc, argv, "abc:d:f:",
+			cmdline_options, &option_index);
+
+		switch(c) {
+			case 'd': // --max-depth or -d option
+				max_depth = atoi(optarg);
+				break;
+		}
+
+		if (c == -1)
+			break;
+	}
+
 	/**
-	** elements: 279069
+	** checking for the argument containing the path to be scanned
 	**/
+	if (argc > optind) {
+		int path_len = strlen(argv[optind]);
+		strncpy(root_path, argv[optind], path_len);
+
+		if (root_path[path_len-1] != '/') {
+			root_path[path_len] = '/';
+			path_len++;
+		}
+
+		root_path[path_len] = '\0';
+	}
+	else {
+		/**
+		** if no path was specified in the command line options we default it to "./"
+		**/
+		root_path[0] = '.';
+		root_path[1] = '/';
+		root_path[2] = '\0';
+	}
+
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	int ret = 0;
 	struct dir_entry *root_entry;
-	
 	struct thread_data *tdata;
 	pthread_t threads[NUM_THREADS];
+	struct queue_list *list = NULL;
+	
+	ret = parse_args(argc, argv);
 
-	struct queue_list *list = queue_new_list();
+	if (ret < 0) {
+		printf("Error parsing command line arguments!\n");
+		return -1;
+	}
+	
+	list = queue_new_list();
 
 	if (!list)
 		return -1;
@@ -240,10 +330,15 @@ int main()
     }
 
 	printf("-------------------------------------------\n");
+
+	sort_dentries(root_entry);
 	print_dentries(root_entry, 0);
+
 	printf("-------------------------------------------\n");
 	printf("Number of threads used: %d\n", NUM_THREADS);
 	printf("Active workers at the end: %d\n", active_workers);
 
 	return 0;
 }
+
+
