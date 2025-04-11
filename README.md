@@ -1,6 +1,6 @@
-# bdu — Better du
+# bdu — better du
 
-`bdu` (Better du) is an alternative to the legacy Linux `du` command. It uses multithreaded scanning and also has a (builtin) sort by size and a bit nicer output. 
+`bdu` (better du) is an alternative to the legacy Linux `du` command. It uses multithreaded scanning and also has a (builtin) sort by size and a bit nicer output. 
 While still in baby shoes, the target is to be fully compatible with "du", using the same command line arguments.
 
 ## Features
