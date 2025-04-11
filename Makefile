@@ -25,5 +25,8 @@ $(TARGET): $(OBJS)
 clean:
 	rm -f $(OBJS) $(TARGET)
 
+install:
+	sudo cp -f ./bdu /usr/bin/bdu
+
 # Phony targets
 .PHONY: all clean
