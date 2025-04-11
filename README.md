@@ -11,10 +11,9 @@ While still in baby shoes, the target is to be fully compatible with "du", using
 - Written in C, with no external libraries or dependencies
 
 ## Installation
-  git clone https://github.com/raczzoli/bdu.git
-  
-  make
-  make install
+  - git clone https://github.com/raczzoli/bdu.git
+  - make
+  - make install
 
 ## Example usages
 - bdu --max-depth=2 /home/
