@@ -4,7 +4,7 @@
 #include "bdu.h"
 #include "output.h"
 
-static void print_size(long int bytes);
+static void print_size(FILE *fp, long int bytes, int leading_spaces);
 static void print_json(FILE *fp, struct dir_entry *head, int max_depth, int depth);
 static void print_plain_text(FILE *fp, struct dir_entry *head, int max_depth, int depth);
 
@@ -29,8 +29,8 @@ static void print_plain_text(FILE *fp, struct dir_entry *head, int max_depth, in
 	for (i=0;i<depth;i++)
 		printf("\t");
 
-	print_size(head->bytes);
-	fprintf(fp, "%s\n", head->path);
+	print_size(fp, head->bytes, 1);
+	fprintf(fp, " %s\n", head->path);
 
 	if (depth >= max_depth)
 		return;
@@ -41,7 +41,7 @@ static void print_plain_text(FILE *fp, struct dir_entry *head, int max_depth, in
 		}
 }
 
-static void print_size(long int bytes)
+static void print_size(FILE *fp, long int bytes, int leading_spaces)
 {
 	const char *units[] = { "B", "K", "M", "G", "T", "P" };
 	double fin_size = bytes;
@@ -56,5 +56,8 @@ static void print_size(long int bytes)
 			break;
 	}
 
-	printf("%7.2f%s ", fin_size, units[unit_cntr]);
+	if (leading_spaces)
+		fprintf(fp, "%7.2f%s", fin_size, units[unit_cntr]);
+	else 
+		fprintf(fp, "%.2f%s", fin_size, units[unit_cntr]);
 }
