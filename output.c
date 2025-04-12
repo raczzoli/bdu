@@ -12,7 +12,7 @@ void output_print(FILE *fp, struct dir_entry *head, const char *format, int max_
 {
 	if (strcmp(format, "json") == 0)
 		print_json(fp, head, max_depth, 0);
-	else if (strcmp(format, "plain") == 0)
+	else if (strcmp(format, "text") == 0)
 		print_plain_text(fp, head, max_depth, 0);
 	else 
 		fprintf(fp, "Invalid output format!\n");

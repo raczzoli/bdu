@@ -222,7 +222,7 @@ void sort_dentries(struct dir_entry *head, int depth)
 	int i;
 
 	/**
-	** we only sort the the displayed children.
+	** we only sort the displayed children.
 	** ex. if --max-depth=1 then we sort only the first level of children, 
 	** since the rest is not displayed, no need to sort it
 	**/
@@ -260,7 +260,7 @@ int parse_args(int argc, char *argv[])
 	}
 
 	if (strlen(output_format) < 1)
-		strcpy(output_format, "plain");
+		strcpy(output_format, "text");
 
 	/**
 	** checking for the argument containing the path to be scanned
