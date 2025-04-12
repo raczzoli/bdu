@@ -31,6 +31,7 @@
 
 char root_path[PATH_MAX];
 int max_depth = 1;
+char output_format[6];
 
 size_t sizeB = 0;
 
@@ -47,6 +48,7 @@ struct option cmdline_options[] =
 		/* These options don’t set a flag.
 			We distinguish them by their indices. */
 		{"max-depth",     required_argument, NULL, 'd'},
+		{"output-format",     required_argument, NULL, 'o'},
 		/*
 		{"append",  no_argument,       0, 'b'},
 		{"delete",  required_argument, 0, 'd'},
@@ -283,11 +285,16 @@ int parse_args(int argc, char *argv[])
 			case 'd': // --max-depth or -d option
 				max_depth = atoi(optarg);
 				break;
+			case 'o':
+				strncpy(output_format, optarg, strlen(optarg));
+				break;
 		}
 
 		if (c == -1)
 			break;
 	}
+
+	printf("Output format: %s\n", output_format);
 
 	/**
 	** checking for the argument containing the path to be scanned
