@@ -20,7 +20,30 @@ void output_print(FILE *fp, struct dir_entry *head, const char *format, int max_
 
 static void print_json(FILE *fp, struct dir_entry *head, int max_depth, int depth)
 {
-	fprintf(fp, "printing json...\n");
+	fprintf(fp, "{");
+	fprintf(fp, "\"path\":\"%s\",", head->path);
+	fprintf(fp, "\"size-bytes\":%ld,", head->bytes);
+	fprintf(fp, "\"size-human\":\"");
+	print_size(fp, head->bytes, 0);
+	fprintf(fp, "\"");
+	
+	if (depth < max_depth) {
+		if (head->children_len > 0) {
+			fprintf(fp, ",\"children\":[");
+			for (int i=0;i<head->children_len;i++) {
+				print_json(fp, head->children[i], max_depth, depth+1);
+
+				if (i < (head->children_len-1))
+					fprintf(fp, ",");
+			}
+			fprintf(fp, "]");
+		}
+	}
+
+	fprintf(fp, "}");
+	
+	if (depth == 0)
+		fprintf(fp, "\n");
 }
 
 static void print_plain_text(FILE *fp, struct dir_entry *head, int max_depth, int depth)
