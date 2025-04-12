@@ -26,6 +26,7 @@
 
 #include "bdu.h"
 #include "queue.h"
+#include "output.h"
 
 #define NUM_THREADS 12
 
@@ -206,24 +207,6 @@ void* thread_worker(void *arg)
 	return NULL;
 }
 
-void print_size(long int bytes)
-{
-	const char *units[] = { "B", "K", "M", "G", "T", "P" };
-	double fin_size = bytes;
-	int unit_cntr = 0;
-
-	while (1) {
-		if (fin_size >= 1024) {
-			fin_size /= 1024;
-			unit_cntr++;
-		}
-		else 
-			break;
-	}
-
-	printf("%7.2f%s ", fin_size, units[unit_cntr]);
-}
-
 int compare_dentries(const void* a, const void* b) 
 {
 	struct dir_entry *dentry_a = *(struct dir_entry **)a;
@@ -254,24 +237,6 @@ void sort_dentries(struct dir_entry *head, int depth)
 	}
 }
 
-void print_dentries(struct dir_entry *head, int depth) 
-{	
-	int i=0;
-	for (i=0;i<depth;i++)
-		printf("\t");
-
-	print_size(head->bytes);
-	printf("%s\n", head->path);
-
-	if (depth >= max_depth)
-		return;
-
-	if (head->children_len > 0)
-		for (i=0;i<head->children_len;i++) {
-			print_dentries(head->children[i], depth+1);
-		}
-}
-
 int parse_args(int argc, char *argv[])
 {
 	int option_index = 0;
@@ -294,7 +259,8 @@ int parse_args(int argc, char *argv[])
 			break;
 	}
 
-	printf("Output format: %s\n", output_format);
+	if (strlen(output_format) < 1)
+		strcpy(output_format, "plain");
 
 	/**
 	** checking for the argument containing the path to be scanned
@@ -366,7 +332,7 @@ int main(int argc, char *argv[])
 	printf("-------------------------------------------\n");
 
 	sort_dentries(root_entry, 0);
-	print_dentries(root_entry, 0);
+	output_print(stdout, root_entry, output_format, max_depth);
 
     time_t end = time(NULL);
     double elapsed = difftime(end, start);
