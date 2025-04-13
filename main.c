@@ -33,6 +33,7 @@
 char root_path[PATH_MAX];
 int max_depth = 1;
 int show_file_mtime = 0;
+int show_summary = 0;
 char output_format[6];
 
 int active_workers = 0;
@@ -46,6 +47,7 @@ struct option cmdline_options[] =
 		//{"brief",   no_argument,       &verbose_flag, 0},
 		/* These options don’t set a flag.
 			We distinguish them by their indices. */
+		{"summarize",     no_argument, NULL, 's'},
 		{"max-depth",     required_argument, NULL, 'd'},
 		{"output-format",     required_argument, NULL, 'o'},
 		{"time",     no_argument, &show_file_mtime, 1},
@@ -272,7 +274,7 @@ int parse_args(int argc, char *argv[])
 	int c;
 
 	while (1) {
-		c = getopt_long (argc, argv, "abc:d:f:",
+		c = getopt_long (argc, argv, "sd:o:",
 			cmdline_options, &option_index);
 
 		switch(c) {
@@ -282,11 +284,21 @@ int parse_args(int argc, char *argv[])
 			case 'o':
 				strncpy(output_format, optarg, strlen(optarg));
 				break;
+			case 's':
+				show_summary = 1;
+				break;
 		}
 
 		if (c == -1)
 			break;
 	}
+
+	/**
+	** if -s or --summarize was set it contradicts with --max-depth option, 
+	** so we set max_depth = 0 which basically means summary
+	**/
+	if (show_summary > 0)
+		max_depth = 0;
 
 	if (strlen(output_format) < 1)
 		strcpy(output_format, "text");
