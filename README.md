@@ -18,5 +18,5 @@ While still in baby shoes, the target is to be fully compatible with "du", using
 
 ## Example usages
 - bdu --max-depth=2 /home
-- bdu --max-depth=0 /home (equivalent to -hs option)
+- bdu --max-depth=0 /home or bdu -s /home (both equivalent to du -s option)
 - bdu --max-depth=2 --output-format=json /home
