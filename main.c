@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <getopt.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -136,12 +137,12 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 	DIR *dir = opendir(dentry->path);
 
 	if (!dir) {
-		printf("Error opening path: %s\n", dentry->path);
+		printf("Error opening path: %s (%s)\n", dentry->path, strerror(errno));
 		return NULL;
 	}
 
 	if (lstat(dentry->path, &st) == -1) {
-		printf("Error while lstat path %s\n", dentry->path);
+		printf("Error while lstat path %s (%s)\n", dentry->path, strerror(errno));
 		return NULL;
 	}
 
@@ -162,7 +163,7 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 		sprintf(full_path, "%s%s", dentry->path, entry->d_name);
 	
 		if (lstat(full_path, &st) == -1) {
-			printf("Error while lstat path %s\n", full_path);
+			printf("Error while lstat path %s (%s)\n", full_path, strerror(errno));
 			continue;
 		}
 
