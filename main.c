@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "bdu.h"
+#include "dir.h"
 #include "queue.h"
 #include "output.h"
 

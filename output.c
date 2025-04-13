@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "bdu.h"
+#include "dir.h"
 #include "output.h"
 
 static void print_size(FILE *fp, long int bytes, int leading_spaces);
