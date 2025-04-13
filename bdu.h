@@ -14,21 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.  
  */
 
-#include <pthread.h>
-
 #ifndef BDU_H
 #define BDU_H
-
-struct dir_entry {
-	char *path;
-	int path_len;
-	size_t bytes;
-	char *last_mdate;
-	struct dir_entry *parent;
-	struct dir_entry **children;
-	int children_len;
-	pthread_mutex_t lock;
-};
 
 struct thread_data {
 	int thread_id;
