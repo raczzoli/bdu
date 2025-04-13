@@ -4,17 +4,17 @@ CFLAGS = -std=gnu99 -Wall -Wextra -g
 LDFLAGS = -lpthread
 
 # Target executable
-TARGET = bdu
+PROG = bdu
 
 # Source files
 SRCS = main.c queue.c output.c
 OBJS = $(SRCS:.c=.o)
 
 # Default target
-all: $(TARGET)
+all: $(PROG)
 
 # Link object files into the final executable
-$(TARGET): $(OBJS)
+$(PROG): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile source files into object files
@@ -23,10 +23,11 @@ $(TARGET): $(OBJS)
 
 # Clean up build files
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(PROG)
 
 install:
-	sudo cp -f ./bdu /usr/bin/bdu
+	sudo install $(PROG) /usr/bin/
+
 
 # Phony targets
 .PHONY: all clean
