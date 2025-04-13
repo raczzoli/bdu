@@ -35,11 +35,8 @@ int max_depth = 1;
 int show_file_mtime = 0;
 char output_format[6];
 
-size_t sizeB = 0;
-
 int active_workers = 0;
 
-pthread_mutex_t stats_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t active_workers_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct option cmdline_options[] =
@@ -170,10 +167,6 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 		if (!S_ISDIR(st.st_mode)) {
 			dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
 
-			pthread_mutex_lock(&stats_mutex);
-			sizeB += st.st_size;
-			pthread_mutex_unlock(&stats_mutex);
-			
 			continue;
 		}
 
