@@ -7,7 +7,7 @@ LDFLAGS = -lpthread
 PROG = bdu
 
 # Source files
-SRCS = main.c queue.c output.c
+SRCS = main.c dir.c queue.c output.c
 OBJS = $(SRCS:.c=.o)
 
 # Default target
