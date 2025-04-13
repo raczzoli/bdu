@@ -18,5 +18,7 @@ While still in baby shoes, the target is to be fully compatible with "du", using
 
 ## Example usages
 - bdu --max-depth=2 /home
-- bdu --max-depth=0 /home or bdu -s /home (both equivalent to du -s option)
+- bdu --max-depth=2 --threads=12 /home (if "--threads" is not present the number of threads will be set to the number of (virtual) CPU cores available on the machine)
+- bdu -s /home (equivalent to du -s /home or du -hs /home - bdu by default prints the sizes in human readable format, for ex: 10G)
 - bdu --max-depth=2 --output-format=json /home
+
