@@ -45,11 +45,11 @@ struct option cmdline_options[] =
 	{
 		// options without arguments
 		{"summarize",     no_argument, NULL, 's'},
-
+		{"time",     no_argument, &show_file_mtime, 1},
+		
 		// options with argument
 		{"max-depth",     required_argument, NULL, 'd'},
 		{"output-format",     required_argument, NULL, 'o'},
-		{"time",     no_argument, &show_file_mtime, 1},
 		{0, 0, 0, 0}
 	};
 
