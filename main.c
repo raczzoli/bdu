@@ -101,12 +101,16 @@ struct dir_entry *dir_create_dentry(char *path)
 	entry->parent = NULL;
 	entry->children_len = 0;
 	
+	pthread_mutex_init(&entry->lock, NULL);
+
 	return entry;
 }
 
 void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes)
 {
+	pthread_mutex_lock(&dentry->lock);
 	dentry->bytes += bytes;
+	pthread_mutex_unlock(&dentry->lock);
 
 	if (dentry->parent)
 		dir_sum_dentry_bytes(dentry->parent, bytes);
