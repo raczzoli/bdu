@@ -43,21 +43,13 @@ pthread_mutex_t active_workers_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct option cmdline_options[] =
 	{
-		/* These options set a flag. */
-		//{"verbose", no_argument,       &verbose_flag, 1},
-		//{"brief",   no_argument,       &verbose_flag, 0},
-		/* These options don’t set a flag.
-			We distinguish them by their indices. */
+		// options without arguments
 		{"summarize",     no_argument, NULL, 's'},
+
+		// options with argument
 		{"max-depth",     required_argument, NULL, 'd'},
 		{"output-format",     required_argument, NULL, 'o'},
 		{"time",     no_argument, &show_file_mtime, 1},
-		/*
-		{"append",  no_argument,       0, 'b'},
-		{"delete",  required_argument, 0, 'd'},
-		{"create",  required_argument, 0, 'c'},
-		{"file",    required_argument, 0, 'f'},
-		*/
 		{0, 0, 0, 0}
 	};
 
