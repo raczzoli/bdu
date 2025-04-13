@@ -36,7 +36,7 @@ char root_path[PATH_MAX];
 int max_depth = 1;
 int show_file_mtime = 0;
 int show_summary = 0;
-int num_threads = 12;
+int num_threads = 0;
 char output_format[6];
 
 pthread_t **threads;
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
 	** we check if the user didn`t for some reason set --threads=0
 	** if it did, we set it to 1
 	**/
-	if (num_threads < 0) 
+	if (num_threads <= 0) 
 		num_threads = get_num_cpu_cores();
 
 	/**
