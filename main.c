@@ -134,6 +134,11 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 	char full_path[PATH_MAX];
 	struct stat st;
 
+	// we don`t list contents of /proc and /run
+	if (strcmp(dentry->path, "/proc/") == 0 || strcmp(dentry->path, "/run/") == 0) 
+		return NULL;
+
+
 	DIR *dir = opendir(dentry->path);
 
 	if (!dir) {
@@ -156,6 +161,10 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 	struct dirent *entry;
 	while ((entry = readdir(dir)) != NULL) {
 		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+			continue;
+
+		// we don`t list contents of /proc and /run
+		if (strcmp(entry->d_name, "proc") == 0 || strcmp(entry->d_name, "run") == 0) 
 			continue;
 
 		memset(full_path, 0, PATH_MAX-1);
