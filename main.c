@@ -218,7 +218,6 @@ void* thread_worker(void *arg)
 
 		if (!elem) {
 			if (num_active_workers() == 0) {
-				//printf("Thread %d closing (no more active workers)...\n", tdata->thread_id);
 				return NULL;
 			}
 			
