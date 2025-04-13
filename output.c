@@ -18,6 +18,9 @@ void output_print(FILE *fp, struct dir_entry *head, const char *format, int max_
 		fprintf(fp, "Invalid output format!\n");
 }
 
+/**
+** JSON output
+**/
 static void print_json(FILE *fp, struct dir_entry *head, int max_depth, int depth)
 {
 	fprintf(fp, "{");
@@ -41,11 +44,14 @@ static void print_json(FILE *fp, struct dir_entry *head, int max_depth, int dept
 	}
 
 	fprintf(fp, "}");
-	
+
 	if (depth == 0)
 		fprintf(fp, "\n");
 }
 
+/**
+** Plain text output
+**/
 static void print_plain_text(FILE *fp, struct dir_entry *head, int max_depth, int depth)
 {
 	int i=0;
@@ -53,6 +59,12 @@ static void print_plain_text(FILE *fp, struct dir_entry *head, int max_depth, in
 		printf("\t");
 
 	print_size(fp, head->bytes, 1);
+
+	// if last_mdate was set, we print it too
+	if (head->last_mdate) {
+		fprintf(fp, "   %s  ", head->last_mdate);
+	}
+
 	fprintf(fp, " %s\n", head->path);
 
 	if (depth >= max_depth)

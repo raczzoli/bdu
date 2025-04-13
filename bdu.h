@@ -5,6 +5,7 @@ struct dir_entry {
 	char *path;
 	int path_len;
 	size_t bytes;
+	char *last_mdate;
 	struct dir_entry *parent;
 	struct dir_entry **children;
 	int children_len;

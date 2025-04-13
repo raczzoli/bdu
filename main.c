@@ -32,6 +32,7 @@
 
 char root_path[PATH_MAX];
 int max_depth = 1;
+int show_file_mtime = 0;
 char output_format[6];
 
 size_t sizeB = 0;
@@ -50,6 +51,7 @@ struct option cmdline_options[] =
 			We distinguish them by their indices. */
 		{"max-depth",     required_argument, NULL, 'd'},
 		{"output-format",     required_argument, NULL, 'o'},
+		{"time",     no_argument, &show_file_mtime, 1},
 		/*
 		{"append",  no_argument,       0, 'b'},
 		{"delete",  required_argument, 0, 'd'},
@@ -111,10 +113,26 @@ void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes)
 		dir_sum_dentry_bytes(dentry->parent, bytes);
 }
 
+char *get_dentry_mdate(time_t mtime) 
+{
+	char *date_str = (char *) malloc(20);
+
+	if (!date_str) {
+		printf("Error allocating memory for date buffer!");
+		return NULL;
+	}
+
+	struct tm *tm_info = localtime(&mtime);
+	strftime(date_str, 20, "%Y-%m-%d %H:%M:%S", tm_info);
+
+	return date_str;
+}
+
 struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 {
 	struct dir_entry *dchild;
 	char full_path[PATH_MAX];
+	struct stat st;
 
 	DIR *dir = opendir(dentry->path);
 
@@ -122,6 +140,18 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 		printf("Error opening path: %s\n", dentry->path);
 		return NULL;
 	}
+
+	if (lstat(dentry->path, &st) == -1) {
+		printf("Error while lstat path %s\n", dentry->path);
+		return NULL;
+	}
+
+	/**
+	** if show_file_mtime = 1 we extract the date of the last modification to the entry, 
+	** and store it in dchild->last_mdate
+	**/
+	if (show_file_mtime) 
+		dentry->last_mdate = get_dentry_mdate(st.st_mtime);
 
 	struct dirent *entry;
 	while ((entry = readdir(dir)) != NULL) {
@@ -131,8 +161,7 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 		memset(full_path, 0, PATH_MAX-1);
 
 		sprintf(full_path, "%s%s", dentry->path, entry->d_name);
-
-		struct stat st;
+	
 		if (lstat(full_path, &st) == -1) {
 			printf("Error while lstat path %s\n", full_path);
 			continue;
@@ -156,6 +185,13 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 			closedir(dir);
 			return NULL;
 		}
+
+		/**
+		** if show_file_mtime = 1 we extract the date of the last modification to the entry, 
+		** and store it in dchild->last_mdate
+		**/
+		if (show_file_mtime) 
+			dchild->last_mdate = get_dentry_mdate(st.st_mtime);
 
 		dchild->parent = dentry;
 
