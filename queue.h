@@ -14,6 +14,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.  
  */
 
+#include <pthread.h>
+
 #ifndef QUEUE_H
 #define QUEUE_H
 
