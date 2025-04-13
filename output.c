@@ -26,7 +26,12 @@ static void print_json(FILE *fp, struct dir_entry *head, int max_depth, int dept
 	fprintf(fp, "{");
 	fprintf(fp, "\"path\":\"%s\",", head->path);
 	fprintf(fp, "\"size-bytes\":%ld,", head->bytes);
-	fprintf(fp, "\"size-human\":\"");
+
+	// if last_mdate was set, we print it too
+	if (head->last_mdate)
+		fprintf(fp, "\"last-modified\":\"%s\",", head->last_mdate);
+
+	fprintf(fp, "\"size-human\":\"");	
 	print_size(fp, head->bytes, 0);
 	fprintf(fp, "\"");
 	
