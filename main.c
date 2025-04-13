@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2025 Zoltan Racz
+ * Copyright (C) 2025 Zoltán Rácz
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
