@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "dir.h"
 
@@ -38,4 +39,20 @@ struct dir_entry *dir_create_dentry(char *path)
 	entry->children_len = 0;
 	
 	return entry;
+}
+
+
+char *dir_get_dentry_mdate(time_t mtime) 
+{
+	char *date_str = (char *) malloc(20);
+
+	if (!date_str) {
+		printf("Error allocating memory for date buffer!");
+		return NULL;
+	}
+
+	struct tm *tm_info = localtime(&mtime);
+	strftime(date_str, 20, "%Y-%m-%d %H:%M:%S", tm_info);
+
+	return date_str;
 }

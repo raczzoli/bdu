@@ -31,5 +31,6 @@ struct dir_entry {
 };
 
 struct dir_entry *dir_create_dentry(char *path);
+char *dir_get_dentry_mdate(time_t mtime);
 
 #endif //DIR_H

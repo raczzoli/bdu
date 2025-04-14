@@ -23,7 +23,6 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <linux/limits.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "bdu.h"
@@ -124,21 +123,6 @@ void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes)
 		dir_sum_dentry_bytes(dentry->parent, bytes);
 }
 
-char *get_dentry_mdate(time_t mtime) 
-{
-	char *date_str = (char *) malloc(20);
-
-	if (!date_str) {
-		printf("Error allocating memory for date buffer!");
-		return NULL;
-	}
-
-	struct tm *tm_info = localtime(&mtime);
-	strftime(date_str, 20, "%Y-%m-%d %H:%M:%S", tm_info);
-
-	return date_str;
-}
-
 struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 {
 	struct dir_entry *dchild;
@@ -167,7 +151,7 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 	** and store it in dchild->last_mdate
 	**/
 	if (show_file_mtime) 
-		dentry->last_mdate = get_dentry_mdate(st.st_mtime);
+		dentry->last_mdate = dir_get_dentry_mdate(st.st_mtime);
 
 	struct dirent *entry;
 	while ((entry = readdir(dir)) != NULL) {
@@ -207,7 +191,7 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 		** and store it in dchild->last_mdate
 		**/
 		if (show_file_mtime) 
-			dchild->last_mdate = get_dentry_mdate(st.st_mtime);
+			dchild->last_mdate = dir_get_dentry_mdate(st.st_mtime);
 
 		dchild->parent = dentry;
 
