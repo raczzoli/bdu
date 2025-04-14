@@ -323,5 +323,6 @@ static void print_help()
     printf("      --threads=N           Number of threads to use\n");
     printf("      --time                Show last file modification time\n");
     printf("  -h, --help                Show this help message and exit\n");
+	printf("\n***** more arguments to be implemented soon (i hope) *****\n");
     printf("\n");
 }
