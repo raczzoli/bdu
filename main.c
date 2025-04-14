@@ -61,21 +61,9 @@ struct option cmdline_options[] =
 		{0, 0, 0, 0}
 	};
  
+static int parse_args(int argc, char *argv[]);
 static int get_num_cpu_cores();
-
-void print_help() 
-{
-    printf("Usage: bdu [OPTIONS] [DIRECTORY...]\n");
-    printf("Multithreaded disk usage analyzer inspired by the classic \"du\" command, written from scratch.\n\n");
-    printf("Options:\n");
-    printf("  -s, --summarize           Display only the total size for each argument\n");
-    printf("  -d, --max-depth=N         Limit depth of directory traversal\n");
-    printf("  -o, --output-format=FMT   Output format: \"text\" or \"json\"\n");
-    printf("      --threads=N           Number of threads to use\n");
-    printf("      --time                Show last file modification time\n");
-    printf("  -h, --help                Show this help message and exit\n");
-    printf("\n");
-}
+static void print_help();
 
 void increment_active_workers()
 {
@@ -166,66 +154,6 @@ void sort_dentries(struct dir_entry *head, int depth)
 	}
 }
 
-int parse_args(int argc, char *argv[])
-{
-	struct option opt;
-	int option_index = 0;
-	int c;
-
-	while (1) {
-		c = getopt_long (argc, argv, "sd:o:",
-			cmdline_options, &option_index);
-
-		switch(c) {
-			case 'd': // --max-depth or -d option
-				max_depth = atoi(optarg);
-				break;
-			case 'o':
-				strncpy(output_format, optarg, strlen(optarg));
-				break;
-			case 's':
-				show_summary = 1;
-				break;
-			case 0:
-				opt = cmdline_options[option_index];
-
-				if (strcmp(opt.name, "threads") == 0) 
-					num_threads = atoi(optarg);
-
-				break;
-		}
-
-		if (c == -1)
-			break;
-	}
-
-
-	/**
-	** checking for the argument containing the path to be scanned
-	**/
-	if (argc > optind) {
-		int path_len = strlen(argv[optind]);
-		strncpy(root_path, argv[optind], path_len);
-
-		if (root_path[path_len-1] != '/') {
-			root_path[path_len] = '/';
-			path_len++;
-		}
-
-		root_path[path_len] = '\0';
-	}
-	else {
-		/**
-		** if no path was specified in the command line options we default it to "./"
-		**/
-		root_path[0] = '.';
-		root_path[1] = '/';
-		root_path[2] = '\0';
-	}
-
-	return 0;
-}
-
 int main(int argc, char *argv[])
 {
 	int ret = 0;
@@ -312,7 +240,67 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-int get_num_cpu_cores()
+static int parse_args(int argc, char *argv[])
+{
+	struct option opt;
+	int option_index = 0;
+	int c;
+
+	while (1) {
+		c = getopt_long (argc, argv, "sd:o:",
+			cmdline_options, &option_index);
+
+		switch(c) {
+			case 'd': // --max-depth or -d option
+				max_depth = atoi(optarg);
+				break;
+			case 'o':
+				strncpy(output_format, optarg, strlen(optarg));
+				break;
+			case 's':
+				show_summary = 1;
+				break;
+			case 0:
+				opt = cmdline_options[option_index];
+
+				if (strcmp(opt.name, "threads") == 0) 
+					num_threads = atoi(optarg);
+
+				break;
+		}
+
+		if (c == -1)
+			break;
+	}
+
+
+	/**
+	** checking for the argument containing the path to be scanned
+	**/
+	if (argc > optind) {
+		int path_len = strlen(argv[optind]);
+		strncpy(root_path, argv[optind], path_len);
+
+		if (root_path[path_len-1] != '/') {
+			root_path[path_len] = '/';
+			path_len++;
+		}
+
+		root_path[path_len] = '\0';
+	}
+	else {
+		/**
+		** if no path was specified in the command line options we default it to "./"
+		**/
+		root_path[0] = '.';
+		root_path[1] = '/';
+		root_path[2] = '\0';
+	}
+
+	return 0;
+}
+
+static int get_num_cpu_cores()
 {
 	long num_cores = sysconf(_SC_NPROCESSORS_ONLN);
 
@@ -322,4 +310,18 @@ int get_num_cpu_cores()
 	}
 
     return num_cores;
+}
+
+static void print_help() 
+{
+    printf("Usage: bdu [OPTIONS] [DIRECTORY...]\n");
+    printf("Multithreaded disk usage analyzer inspired by the classic \"du\" command, written from scratch.\n\n");
+    printf("Options:\n");
+    printf("  -s, --summarize           Display only the total size for each argument\n");
+    printf("  -d, --max-depth=N         Limit depth of directory traversal\n");
+    printf("  -o, --output-format=FMT   Output format: \"text\" or \"json\"\n");
+    printf("      --threads=N           Number of threads to use\n");
+    printf("      --time                Show last file modification time\n");
+    printf("  -h, --help                Show this help message and exit\n");
+    printf("\n");
 }
