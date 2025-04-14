@@ -36,6 +36,7 @@
 char root_path[PATH_MAX];
 int max_depth = 1;
 int show_file_mtime = 0;
+int show_help = 0;
 int show_summary = 0;
 int num_threads = 0;
 char output_format[6];
@@ -50,6 +51,7 @@ struct option cmdline_options[] =
 		// options without arguments
 		{"summarize",     no_argument, NULL, 's'},
 		{"time",     no_argument, &show_file_mtime, 1},
+		{"help",     no_argument, &show_help, 1},
 
 		// options with argument
 		{"max-depth",     required_argument, NULL, 'd'},
@@ -60,6 +62,20 @@ struct option cmdline_options[] =
 	};
  
 static int get_num_cpu_cores();
+
+void print_help() 
+{
+    printf("Usage: bdu [OPTIONS] [DIRECTORY...]\n");
+    printf("Multithreaded disk usage analyzer inspired by the classic \"du\" command, written from scratch.\n\n");
+    printf("Options:\n");
+    printf("  -s, --summarize           Display only the total size for each argument\n");
+    printf("  -d, --max-depth=N         Limit depth of directory traversal\n");
+    printf("  -o, --output-format=FMT   Output format: \"text\" or \"json\"\n");
+    printf("      --threads=N           Number of threads to use\n");
+    printf("      --time                Show last file modification time\n");
+    printf("  -h, --help                Show this help message and exit\n");
+    printf("\n");
+}
 
 void increment_active_workers()
 {
@@ -86,22 +102,13 @@ int num_active_workers()
 	return num;
 }
 
-struct dir_entry *dir_create_dentry(char *path)
+struct dir_entry *create_dentry(char *path)
 {
-	struct dir_entry *entry = (struct dir_entry *)malloc(sizeof(struct dir_entry));
-
-	if (!entry) {
-		printf("Error allocating memory for dentry!\n");
-		return NULL;
-	}
-
-	entry->path = strdup(path);
-	entry->path_len = strlen(entry->path);
-	entry->bytes = 0;
-	entry->children = NULL;
-	entry->parent = NULL;
-	entry->children_len = 0;
+	struct dir_entry *entry = dir_create_dentry(path);
 	
+	if (!entry)
+		return NULL;
+
 	pthread_mutex_init(&entry->lock, NULL);
 
 	return entry;
@@ -188,7 +195,7 @@ struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
 
 		full_path[strlen(full_path)] = '/';
 
-		dchild = dir_create_dentry(full_path);
+		dchild = create_dentry(full_path);
 
 		if (!dchild) {
 			closedir(dir);
@@ -357,6 +364,12 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
+	if (show_help > 0) {
+		print_help();
+		return 0;
+	}
+
+
 	/**
 	** we check if the user didn`t for some reason set --threads=0
 	** if it did, we set it to 1
@@ -384,7 +397,7 @@ int main(int argc, char *argv[])
 	if (!list)
 		return -1;
 
-	root_entry = dir_create_dentry(root_path);
+	root_entry = create_dentry(root_path);
 
 	if (!root_entry)
 		return -1;
