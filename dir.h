@@ -30,4 +30,6 @@ struct dir_entry {
 	pthread_mutex_t lock;
 };
 
+struct dir_entry *dir_create_dentry(char *path);
+
 #endif //DIR_H
