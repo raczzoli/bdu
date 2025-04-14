@@ -19,7 +19,6 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
-#include <dirent.h>
 #include <sys/stat.h>
 #include <pthread.h>
 #include <linux/limits.h>
@@ -42,6 +41,8 @@ char output_format[6];
 
 pthread_t **threads;
 int active_workers = 0;
+
+struct queue_list *qlist = NULL;
 
 pthread_mutex_t active_workers_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -101,125 +102,18 @@ int num_active_workers()
 	return num;
 }
 
-struct dir_entry *create_dentry(char *path)
+void subdir_scan_callback(struct dir_entry *d)
 {
-	struct dir_entry *entry = dir_create_dentry(path);
-	
-	if (!entry)
-		return NULL;
-
-	pthread_mutex_init(&entry->lock, NULL);
-
-	return entry;
+	queue_add_elem(qlist, d);
 }
 
-void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes)
+void* thread_worker() 
 {
-	pthread_mutex_lock(&dentry->lock);
-	dentry->bytes += bytes;
-	pthread_mutex_unlock(&dentry->lock);
-
-	if (dentry->parent)
-		dir_sum_dentry_bytes(dentry->parent, bytes);
-}
-
-struct dir_entry *scan_dir(struct dir_entry *dentry, struct queue_list *qlist)
-{
-	struct dir_entry *dchild;
-	char full_path[PATH_MAX];
-	struct stat st;
-
-	// we don`t list contents of /proc and /run
-	if (strcmp(dentry->path, "/proc/") == 0 || strcmp(dentry->path, "/run/") == 0) 
-		return NULL;
-
-
-	DIR *dir = opendir(dentry->path);
-
-	if (!dir) {
-		printf("Error opening path: %s (%s)\n", dentry->path, strerror(errno));
-		return NULL;
-	}
-
-	if (lstat(dentry->path, &st) == -1) {
-		printf("Error while lstat path %s (%s)\n", dentry->path, strerror(errno));
-		return NULL;
-	}
-
-	/**
-	** if show_file_mtime = 1 we extract the date of the last modification to the entry, 
-	** and store it in dchild->last_mdate
-	**/
-	if (show_file_mtime) 
-		dentry->last_mdate = dir_get_dentry_mdate(st.st_mtime);
-
-	struct dirent *entry;
-	while ((entry = readdir(dir)) != NULL) {
-		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-			continue;
-
-		// we don`t list contents of /proc and /run
-		if (strcmp(entry->d_name, "proc") == 0 || strcmp(entry->d_name, "run") == 0) 
-			continue;
-
-		memset(full_path, 0, PATH_MAX-1);
-
-		sprintf(full_path, "%s%s", dentry->path, entry->d_name);
-	
-		if (lstat(full_path, &st) == -1) {
-			printf("Error while lstat path %s (%s)\n", full_path, strerror(errno));
-			continue;
-		}
-
-		if (!S_ISDIR(st.st_mode)) {
-			dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
-
-			continue;
-		}
-
-		full_path[strlen(full_path)] = '/';
-
-		dchild = create_dentry(full_path);
-
-		if (!dchild) {
-			closedir(dir);
-			return NULL;
-		}
-
-		/**
-		** if show_file_mtime = 1 we extract the date of the last modification to the entry, 
-		** and store it in dchild->last_mdate
-		**/
-		if (show_file_mtime) 
-			dchild->last_mdate = dir_get_dentry_mdate(st.st_mtime);
-
-		dchild->parent = dentry;
-
-		if (dentry->children_len == 0)
-			dentry->children = calloc(1, sizeof(struct dir_entry *));
-		else 
-			dentry->children = realloc(dentry->children, (dentry->children_len+1) * sizeof(struct dir_entry *));
-
-		dentry->children[dentry->children_len] = dchild;
-		dentry->children_len++;
-
-		queue_add_elem(qlist, dchild);
-	}
-
-	closedir(dir);
-
-	return dentry;
-}
-
-void* thread_worker(void *arg) 
-{
-	struct thread_data *tdata = (struct thread_data *)arg;
-	struct queue_list *list = tdata->list;
 	struct queue_elem *elem = NULL;
 	struct dir_entry *dentry = NULL;
 
 	while (1) {
-		elem = queue_get_next_elem(list);
+		elem = queue_get_next_elem(qlist);
 
 		if (!elem) {
 			if (num_active_workers() == 0) {
@@ -232,7 +126,7 @@ void* thread_worker(void *arg)
 		increment_active_workers();
 
 		dentry = (struct dir_entry *)elem->data;
-		scan_dir(dentry, list);
+		dir_scan(dentry, subdir_scan_callback, show_file_mtime);
 
 		decrement_active_workers();
 
@@ -337,7 +231,6 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	struct dir_entry *root_entry;
 	struct thread_data *tdata;
-	struct queue_list *list = NULL;
 	
 	time_t start = time(NULL);
 
@@ -352,7 +245,6 @@ int main(int argc, char *argv[])
 		print_help();
 		return 0;
 	}
-
 
 	/**
 	** we check if the user didn`t for some reason set --threads=0
@@ -376,17 +268,17 @@ int main(int argc, char *argv[])
 		strcpy(output_format, "text");
 
 
-	list = queue_new_list();
+	qlist = queue_new_list();
 
-	if (!list)
+	if (!qlist)
 		return -1;
 
-	root_entry = create_dentry(root_path);
+	root_entry = dir_create_dentry(root_path);
 
 	if (!root_entry)
 		return -1;
 
-	queue_add_elem(list, root_entry);
+	queue_add_elem(qlist, root_entry);
 	
 	threads = calloc(num_threads, sizeof(pthread_t *));
 	
@@ -396,7 +288,6 @@ int main(int argc, char *argv[])
 
 		tdata = (struct thread_data *)malloc(sizeof(struct thread_data));
 		tdata->thread_id = i;
-		tdata->list = list;
 
 		pthread_create(threads[i], NULL, thread_worker, (void *)tdata);
 	}

@@ -31,6 +31,8 @@ struct dir_entry {
 };
 
 struct dir_entry *dir_create_dentry(char *path);
+struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struct dir_entry*), int proc_mtime);
+void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes);
 char *dir_get_dentry_mdate(time_t mtime);
 
 #endif //DIR_H
