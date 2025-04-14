@@ -28,15 +28,20 @@
 #include "dir.h"
 #include "queue.h"
 #include "output.h"
+#include "utils.h"
 
 #define NUM_THREADS_DEFAULT 12
 
 char root_path[PATH_MAX];
-int max_depth = 1;
 int show_file_mtime = 0;
 int show_help = 0;
 int show_summary = 0;
 int num_threads = 0;
+
+int max_depth = 1;
+long unsigned int warn_at_bytes = 0;
+long unsigned int critical_at_bytes = 0;
+
 char output_format[6];
 
 pthread_t **threads;
@@ -57,6 +62,8 @@ struct option cmdline_options[] =
 		{"max-depth",     required_argument, NULL, 'd'},
 		{"output-format",     required_argument, NULL, 'o'},
 		{"threads",     required_argument, NULL, 0},
+		{"warn-at",     required_argument, NULL, 0},
+		{"critical-at",     required_argument, NULL, 0},
 
 		{0, 0, 0, 0}
 	};
@@ -159,7 +166,8 @@ int main(int argc, char *argv[])
 	int ret = 0;
 	struct dir_entry *root_entry;
 	struct thread_data *tdata;
-	
+	struct output_options output_opts;
+
 	time_t start = time(NULL);
 
 	ret = parse_args(argc, argv);
@@ -209,7 +217,6 @@ int main(int argc, char *argv[])
 	queue_add_elem(qlist, root_entry);
 	
 	threads = calloc(num_threads, sizeof(pthread_t *));
-	
 
 	for (int i = 0; i < num_threads; i++) {
 		threads[i] = (pthread_t *) malloc(sizeof(pthread_t));
@@ -227,7 +234,12 @@ int main(int argc, char *argv[])
 	printf("-------------------------------------------\n");
 
 	sort_dentries(root_entry, 0);
-	output_print(stdout, root_entry, output_format, max_depth);
+
+	output_opts.max_depth = max_depth;
+	output_opts.show_warn_at_bytes = warn_at_bytes;
+	output_opts.show_critical_at_bytes = critical_at_bytes;
+
+	output_print(stdout, root_entry, output_format, output_opts);
 
 	time_t end = time(NULL);
 	double elapsed = difftime(end, start);
@@ -265,6 +277,10 @@ static int parse_args(int argc, char *argv[])
 
 				if (strcmp(opt.name, "threads") == 0) 
 					num_threads = atoi(optarg);
+				else if (strcmp(opt.name, "warn-at") == 0)
+					warn_at_bytes = human_size_to_bytes(optarg);
+				else if (strcmp(opt.name, "critical-at") == 0)
+					critical_at_bytes = human_size_to_bytes(optarg);
 
 				break;
 		}
@@ -272,7 +288,6 @@ static int parse_args(int argc, char *argv[])
 		if (c == -1)
 			break;
 	}
-
 
 	/**
 	** checking for the argument containing the path to be scanned
@@ -323,6 +338,7 @@ static void print_help()
     printf("      --threads=N           Number of threads to use\n");
     printf("      --time                Show last file modification time\n");
     printf("  -h, --help                Show this help message and exit\n");
-	printf("\n***** more arguments to be implemented soon (i hope) *****\n");
+	printf("\n");
+	printf("***** more arguments to be implemented soon (i hope) *****\n");
     printf("\n");
 }
