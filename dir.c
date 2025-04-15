@@ -161,3 +161,28 @@ char *dir_get_dentry_mdate(time_t mtime)
 
 	return date_str;
 }
+
+int dir_free_entries(struct dir_entry *head)
+{
+	if (!head)
+		return -1;
+
+	if (head->children_len > 0) 
+		for (int i=0;i<head->children_len;i++) 
+			dir_free_entries(head->children[i]);
+
+
+	free(head->path);
+
+	if (head->children)
+		free(head->children);
+
+	if (head->last_mdate)
+		free(head->last_mdate);
+
+	pthread_mutex_destroy(&head->lock);
+
+	free(head);
+
+	return 0;
+}
