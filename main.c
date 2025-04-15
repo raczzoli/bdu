@@ -165,7 +165,6 @@ int main(int argc, char *argv[])
 {
 	int ret = 0;
 	struct dir_entry *root_entry;
-	struct thread_data *tdata;
 	struct output_options output_opts;
 
 	time_t start = time(NULL);
@@ -221,10 +220,7 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < num_threads; i++) {
 		threads[i] = (pthread_t *) malloc(sizeof(pthread_t));
 
-		tdata = (struct thread_data *)malloc(sizeof(struct thread_data));
-		tdata->thread_id = i;
-
-		pthread_create(threads[i], NULL, thread_worker, (void *)tdata);
+		pthread_create(threads[i], NULL, thread_worker, NULL);
 	}
 
 	for (int i = 0; i < num_threads; i++) {
@@ -240,6 +236,8 @@ int main(int argc, char *argv[])
 	output_opts.show_critical_at_bytes = critical_at_bytes;
 
 	output_print(stdout, root_entry, output_format, output_opts);
+
+	dir_free_entries(root_entry);
 
 	time_t end = time(NULL);
 	double elapsed = difftime(end, start);
