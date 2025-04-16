@@ -330,7 +330,7 @@ static int get_num_cpu_cores()
 
 static int process_output(struct dir_entry *root_entry)
 {
-	struct output_options output_opts;
+	struct output_options output_opts = {.no_styles=0};
 	FILE *out;
 
 	output_opts.max_depth = max_depth;
