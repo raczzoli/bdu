@@ -23,24 +23,24 @@
 static void print_size(FILE *fp, long int bytes, int leading_spaces);
 
 // json
-static void print_json(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
+static void print_json(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth);
 
 // plain text
-static void print_plain_text(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
+void print_plain_text(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth);
 
 // html
-static void print_html(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
-static void print_html_entries(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
+static void print_html(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth);
+static void print_html_entries(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth);
 
 
-void output_print(FILE *fp, struct dir_entry *head, const char *format, struct output_options options)
+void output_print(FILE *fp, struct dir_entry **entries, int entries_len, const char *format, struct output_options options)
 {
 	if (strcmp(format, "json") == 0)
-		print_json(fp, head, options, 0);
+		print_json(fp, entries, entries_len, options, 0);
 	else if (strcmp(format, "text") == 0)
-		print_plain_text(fp, head, options, 0);
+		print_plain_text(fp, entries, entries_len, options, 0);
 	else if (strcmp(format, "html") == 0)
-		print_html(fp, head, options, 0);
+		print_html(fp, entries, entries_len, options, 0);
 	else 
 		fprintf(fp, "Invalid output format!\n");
 }
@@ -48,34 +48,36 @@ void output_print(FILE *fp, struct dir_entry *head, const char *format, struct o
 /**
 ** JSON output
 **/
-static void print_json(FILE *fp, struct dir_entry *head, struct output_options options, int depth)
+static void print_json(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth)
 {
-	fprintf(fp, "{");
-	fprintf(fp, "\"path\":\"%s\",", head->path);
-	fprintf(fp, "\"size-bytes\":%ld,", head->bytes);
+	fprintf(fp, "[");
+	for (int i=0;i<entries_len;i++) {
+		struct dir_entry *head = entries[i];
 
-	// if last_mdate was set, we print it too
-	if (head->last_mdate)
-		fprintf(fp, "\"last-modified\":\"%s\",", head->last_mdate);
-
-	fprintf(fp, "\"size-human\":\"");	
-	print_size(fp, head->bytes, 0);
-	fprintf(fp, "\"");
+		fprintf(fp, "{");
+		fprintf(fp, "\"path\":\"%s\",", head->path);
+		fprintf(fp, "\"size-bytes\":%ld,", head->bytes);
 	
-	if (depth < options.max_depth) {
-		if (head->children_len > 0) {
-			fprintf(fp, ",\"children\":[");
-			for (int i=0;i<head->children_len;i++) {
-				print_json(fp, head->children[i], options, depth+1);
-
-				if (i < (head->children_len-1))
-					fprintf(fp, ",");
+		// if last_mdate was set, we print it too
+		if (head->last_mdate)
+			fprintf(fp, "\"last-modified\":\"%s\",", head->last_mdate);
+	
+		fprintf(fp, "\"size-human\":\"");	
+		print_size(fp, head->bytes, 0);
+		fprintf(fp, "\"");
+		
+		if (depth < options.max_depth || options.max_depth < 0) {
+			if (head->children_len > 0) {
+				fprintf(fp, ",\"children\":");
+				print_json(fp, head->children, head->children_len, options, depth+1);
 			}
-			fprintf(fp, "]");
 		}
+	
+		fprintf(fp, "}");
+		if (i < (entries_len-1))
+			fprintf(fp, ",");
 	}
-
-	fprintf(fp, "}");
+	fprintf(fp, "]");
 
 	if (depth == 0)
 		fprintf(fp, "\n");
@@ -84,83 +86,96 @@ static void print_json(FILE *fp, struct dir_entry *head, struct output_options o
 /**
 ** Plain text output
 **/
-static void print_plain_text(FILE *fp, struct dir_entry *head, struct output_options options, int depth)
+void print_plain_text(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth)
 {
-	int i=0;
-	for (i=0;i<depth;i++)
-		printf("\t");
-
-	if (!options.no_styles)
-		if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
-			if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
-				fprintf(fp, "\033[31m"); // red
-			else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
-				fprintf(fp, "\033[33m"); // yellow
-			else 
-				fprintf(fp, "\033[32m"); // green
-		}
-
-	print_size(fp, head->bytes, 1);
-
-	if (!options.no_styles)
-		fprintf(fp, "\033[0m"); // reset font color
-
-	// if last_mdate was set, we print it too
-	if (head->last_mdate) {
-		fprintf(fp, "   %s  ", head->last_mdate);
-	}
-
-	fprintf(fp, " %s\n", head->path);
-
-	if (depth >= options.max_depth)
+	if (!entries || entries_len == 0)
 		return;
 
-	if (head->children_len > 0)
-		for (i=0;i<head->children_len;i++) {
-			print_plain_text(fp, head->children[i], options, depth+1);
+	for (int i=0;i<entries_len;i++) {
+		struct dir_entry *head = entries[i];
+
+		if (!head)
+			continue;
+
+		for (int j=0;j<depth;j++)
+			printf("\t");
+
+		if (!options.no_styles)
+			if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
+				if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
+					fprintf(fp, "\033[31m"); // red
+				else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
+					fprintf(fp, "\033[33m"); // yellow
+				else 
+					fprintf(fp, "\033[32m"); // green
+			}
+	
+		print_size(fp, head->bytes, 1);
+	
+		if (!options.no_styles)
+			fprintf(fp, "\033[0m"); // reset font color
+	
+		// if last_mdate was set, we print it too
+		if (head->last_mdate) {
+			fprintf(fp, "   %s  ", head->last_mdate);
 		}
+	
+		fprintf(fp, " %s\n", head->path);
+	
+		if (options.max_depth < 0 || depth < options.max_depth)
+		{
+			print_plain_text(fp, head->children, head->children_len, options, depth+1);
+		}
+	}
 }
 
-static void print_html(FILE *fp, struct dir_entry *head, struct output_options options, int depth)
+static void print_html(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth)
 {
 	fprintf(fp, "<!DOCTYPE html>\n<html lang=\"en\">\n");
-	fprintf(fp, "<head><meta charset=\"UTF-8\"><title>Disk Usage Report</title><style>body {font-family: monospace; background: #1e1e1e; color: #dcdcdc; padding: 20px;} ul {list-style-type: none; padding-left: 20px;} li {margin: 4px 0;} .size {display: inline-block; width: 80px; font-weight: bold;} .red {color: #ff5c5c;} .orange {color: #ffa500;} .yellow {color: #ffd700;} .green {color: #7fff00;}</style></head>\n");
+	fprintf(fp, "<head><meta charset=\"UTF-8\"><title>Disk Usage Report</title><style>body {font-family: monospace; background: #1e1e1e; color: #dcdcdc; padding: 20px;} ul {list-style-type: none; padding-left: 20px;} li {margin: 4px 0;} .size {display: inline-block; width: 80px; font-weight: bold;} .date {display: inline-block; width: 185px; } .red {color: #ff5c5c;} .orange {color: #ffa500;} .yellow {color: #ffd700;} .green {color: #7fff00;}</style></head>\n");
 	fprintf(fp, "<body>");
-		fprintf(fp, "<h1>Disk Usage Report for %s</h1>", head->path);
-		fprintf(fp, "<ul>");
-			print_html_entries(fp, head, options, depth);
-		fprintf(fp, "</ul>\n");
+		fprintf(fp, "<h1>Disk Usage Report</h1>");
+		print_html_entries(fp, entries, entries_len, options, depth);
 	fprintf(fp, "</body>\n");
 	fprintf(fp, "</html>\n");
 }
 
-static void print_html_entries(FILE *fp, struct dir_entry *head, struct output_options options, int depth)
+static void print_html_entries(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth)
 {
-	char size_cls[10];
+	fprintf(fp, "<ul>");
 
-	if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
-		if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
-			strcpy(size_cls, "red");
-		else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
-			strcpy(size_cls, "orange");
-		else 
-			strcpy(size_cls, "green");
-	}
+	for (int i=0;i<entries_len;i++) {
+		char size_cls[10];
+		struct dir_entry *head = entries[i];
 
-	fprintf(fp, "<li><span class=\"size %s\">", size_cls);//
-	print_size(fp, head->bytes, 0);
-	fprintf(fp, "</span> %s",head->path);
+		if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
+			if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
+				strcpy(size_cls, "red");
+			else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
+				strcpy(size_cls, "orange");
+			else 
+				strcpy(size_cls, "green");
+		}
 	
-	if (depth < options.max_depth) {
-		if (head->children_len > 0)
-			for (int i=0;i<head->children_len;i++) {
-				fprintf(fp, "<ul>");
-				print_html_entries(fp, head->children[i], options, depth+1);
-				fprintf(fp, "</ul>");
-			}
+		fprintf(fp, "<li><span class=\"size %s\">", size_cls);
+		print_size(fp, head->bytes, 0);
+		fprintf(fp, "</span> ");
+
+		if (head->last_mdate) {
+			fprintf(fp, "<span class=\"date\">%s</span>", head->last_mdate);
+		}
+
+		fprintf(fp, "%s", head->path);
+
+		if (depth < options.max_depth || options.max_depth < 0) {
+			if (head->children_len > 0)
+				print_html_entries(fp, head->children, head->children_len, options, depth+1);
+		}
+	
+		fprintf(fp, "</li>");
 	}
 
-	fprintf(fp, "</li>");
+	fprintf(fp, "</ul>\n");
 }
 
 static void print_size(FILE *fp, long int bytes, int leading_spaces)

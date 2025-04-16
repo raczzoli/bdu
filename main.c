@@ -32,16 +32,17 @@
 
 #define NUM_THREADS_DEFAULT 12
 
-char root_path[PATH_MAX];
 char output_file_path[PATH_MAX];
 int output_file_path_len;
 
+struct dir_entry **root_entries;
+int root_entries_len = 0;
 int show_file_mtime = 0;
 int show_help = 0;
 int show_summary = 0;
 int num_threads = 0;
 
-int max_depth = 1;
+int max_depth = -1;
 long unsigned int warn_at_bytes = 0;
 long unsigned int critical_at_bytes = 0;
 
@@ -75,7 +76,68 @@ struct option cmdline_options[] =
 static int parse_args(int argc, char *argv[]);
 static int get_num_cpu_cores();
 static void print_help();
-static int process_output(struct dir_entry *root_entry);
+static int process_output();
+
+
+int add_root_entry_if_directory(char *path)
+{
+	struct stat st;
+	if (lstat(path, &st) == -1) {
+		printf("Error while lstat path %s (%s)\n", path, strerror(errno));
+		return -1;
+	}
+
+	/**
+	** we check if the current path is a directory or something else.
+	** we (obviously) don`t add only folders to the root_entries stack
+	**/
+	if (!S_ISDIR(st.st_mode)) 
+		return -1;
+
+	if (root_entries_len == 0)
+		root_entries = calloc(root_entries_len+1, sizeof(char *));
+	else 
+		root_entries = realloc(root_entries, (root_entries_len+1) * sizeof(char *));
+
+	if (!root_entries) {
+		printf("Error allocating memory for root entries array!\n");
+		return -1;
+	}
+
+	struct dir_entry *d = dir_create_dentry(path);
+
+	if (!d) {
+		printf("Error allocating memory for root entry!\n");
+		return -1;
+	}
+
+	root_entries[root_entries_len] = d;
+	root_entries_len++;
+
+	queue_add_elem(qlist, d);
+
+	return 0;
+}
+
+int process_files_args(int argc, char **argv)
+{
+	/**
+	** checking for the argument containing the path to be scanned
+	**/
+	if (argc > optind) {
+		for (int i=optind;i<argc;i++) {
+			add_root_entry_if_directory(argv[i]);
+		}
+	}
+	else {
+		/**
+		** if no path was specified in the command line options we default it to "./"
+		**/
+		add_root_entry_if_directory("./");
+	}
+
+	return 0;
+}
 
 void increment_active_workers()
 {
@@ -155,7 +217,7 @@ void sort_dentries(struct dir_entry *head, int depth)
 	** ex. if --max-depth=1 then we sort only the first level of children, 
 	** since the rest is not displayed, no need to sort it
 	**/
-	if (depth == max_depth)
+	if (max_depth >= 0 && depth == max_depth)
 		return;
 	
 	if (head->children_len > 0) {
@@ -169,7 +231,6 @@ void sort_dentries(struct dir_entry *head, int depth)
 int main(int argc, char *argv[])
 {
 	int ret = 0;
-	struct dir_entry *root_entry;
 
 	time_t start = time(NULL);
 
@@ -184,6 +245,20 @@ int main(int argc, char *argv[])
 		print_help();
 		return 0;
 	}
+
+	/**
+	** we check if qlist has been initialized. If not, we initialize it. 
+	** If queue_new_list() returns NULL, no need to go further
+	**/
+	if (!qlist) {
+		qlist = queue_new_list();
+		if (!qlist) {
+			printf("Error allocating memory for scan queue list!\n");
+			return -1;
+		}
+	}
+
+	process_files_args(argc, argv);
 
 	/**
 	** we check if the user didn`t for some reason set --threads=0
@@ -207,18 +282,6 @@ int main(int argc, char *argv[])
 		strcpy(output_format, "text");
 
 
-	qlist = queue_new_list();
-
-	if (!qlist)
-		return -1;
-
-	root_entry = dir_create_dentry(root_path);
-
-	if (!root_entry)
-		return -1;
-
-	queue_add_elem(qlist, root_entry);
-	
 	threads = calloc(num_threads, sizeof(pthread_t *));
 
 	for (int i = 0; i < num_threads; i++) {
@@ -233,11 +296,14 @@ int main(int argc, char *argv[])
 
 	printf("-------------------------------------------\n");
 
+	process_output();
+
+	/*
 	sort_dentries(root_entry, 0);
 
-	process_output(root_entry);
+	*/
 
-	dir_free_entries(root_entry);
+	dir_free_entries(root_entries, root_entries_len);
 
 	time_t end = time(NULL);
 	double elapsed = difftime(end, start);
@@ -290,29 +356,6 @@ static int parse_args(int argc, char *argv[])
 			break;
 	}
 
-	/**
-	** checking for the argument containing the path to be scanned
-	**/
-	if (argc > optind) {
-		int path_len = strlen(argv[optind]);
-		strncpy(root_path, argv[optind], path_len);
-
-		if (root_path[path_len-1] != '/') {
-			root_path[path_len] = '/';
-			path_len++;
-		}
-
-		root_path[path_len] = '\0';
-	}
-	else {
-		/**
-		** if no path was specified in the command line options we default it to "./"
-		**/
-		root_path[0] = '.';
-		root_path[1] = '/';
-		root_path[2] = '\0';
-	}
-
 	return 0;
 }
 
@@ -328,7 +371,7 @@ static int get_num_cpu_cores()
     return num_cores;
 }
 
-static int process_output(struct dir_entry *root_entry)
+static int process_output()
 {
 	struct output_options output_opts = {.no_styles=0};
 	FILE *out;
@@ -353,7 +396,7 @@ static int process_output(struct dir_entry *root_entry)
 	else 
 		out = stdout;
 
-	output_print(out, root_entry, output_format, output_opts);
+	output_print(out, root_entries, root_entries_len, output_format, output_opts);
 
 	return 0;
 }

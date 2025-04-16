@@ -24,6 +24,6 @@ struct output_options {
 	unsigned int no_styles;
 };
 
-void output_print(FILE *fp, struct dir_entry *head, const char *format, struct output_options options);
+void output_print(FILE *fp, struct dir_entry **entries, int entries_len, const char *format, struct output_options options);
 
 #endif //OUTPUT_H

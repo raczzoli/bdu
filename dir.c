@@ -29,14 +29,23 @@
 struct dir_entry *dir_create_dentry(char *path)
 {
 	struct dir_entry *entry = (struct dir_entry *)malloc(sizeof(struct dir_entry));
+	int leading_slash = 1;
 
 	if (!entry) {
 		printf("Error allocating memory for dentry!\n");
 		return NULL;
 	}
 
-	entry->path = strdup(path);
-	entry->path_len = strlen(entry->path);
+	entry->path_len = strlen(path);
+
+	if (path[entry->path_len-1] != '/') {
+		entry->path_len++;
+		leading_slash = 0;
+	}
+
+	entry->path = (char *) malloc(entry->path_len+1); // +1 for NULL
+	snprintf(entry->path, entry->path_len+1, "%s%s", path, !leading_slash ? "/" : "");
+
 	entry->last_mdate = NULL;
 	entry->bytes = 0;
 	entry->children = NULL;
@@ -165,14 +174,27 @@ char *dir_get_dentry_mdate(time_t mtime)
 	return date_str;
 }
 
-int dir_free_entries(struct dir_entry *head)
+int dir_free_entries(struct dir_entry **entries, int entries_len)
+{
+	if (!entries || entries_len <= 0) 
+		return -1;
+
+	for (int i=0;i<entries_len;i++)
+		dir_free_entry(entries[i]);
+
+	free(entries);
+
+	return 0;
+}
+
+int dir_free_entry(struct dir_entry *head)
 {
 	if (!head)
 		return -1;
 
 	if (head->children_len > 0) 
 		for (int i=0;i<head->children_len;i++) 
-			dir_free_entries(head->children[i]);
+			dir_free_entry(head->children[i]);
 
 
 	free(head->path);
