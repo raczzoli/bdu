@@ -21,6 +21,7 @@ struct output_options {
 	int max_depth;
 	long unsigned int show_warn_at_bytes;
 	long unsigned int show_critical_at_bytes;
+	unsigned int no_styles;
 };
 
 void output_print(FILE *fp, struct dir_entry *head, const char *format, struct output_options options);

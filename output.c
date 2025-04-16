@@ -80,17 +80,20 @@ static void print_plain_text(FILE *fp, struct dir_entry *head, struct output_opt
 	for (i=0;i<depth;i++)
 		printf("\t");
 
-	if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
-		if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
-			fprintf(fp, "\033[31m"); // read
-		else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
-			fprintf(fp, "\033[33m"); // yellow
-		else 
-			fprintf(fp, "\033[32m"); // yellow
-	}
+	if (!options.no_styles)
+		if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
+			if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
+				fprintf(fp, "\033[31m"); // read
+			else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
+				fprintf(fp, "\033[33m"); // yellow
+			else 
+				fprintf(fp, "\033[32m"); // yellow
+		}
 
 	print_size(fp, head->bytes, 1);
-	fprintf(fp, "\033[0m"); // reset font color
+	
+	if (!options.no_styles)
+		fprintf(fp, "\033[0m"); // reset font color
 
 	// if last_mdate was set, we print it too
 	if (head->last_mdate) {

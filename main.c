@@ -33,6 +33,9 @@
 #define NUM_THREADS_DEFAULT 12
 
 char root_path[PATH_MAX];
+char output_file_path[PATH_MAX];
+int output_file_path_len;
+
 int show_file_mtime = 0;
 int show_help = 0;
 int show_summary = 0;
@@ -64,6 +67,7 @@ struct option cmdline_options[] =
 		{"threads",     required_argument, NULL, 0},
 		{"warn-at",     required_argument, NULL, 0},
 		{"critical-at",     required_argument, NULL, 0},
+		{"output-file",     required_argument, NULL, 0},
 
 		{0, 0, 0, 0}
 	};
@@ -71,6 +75,7 @@ struct option cmdline_options[] =
 static int parse_args(int argc, char *argv[]);
 static int get_num_cpu_cores();
 static void print_help();
+static int process_output(struct dir_entry *root_entry);
 
 void increment_active_workers()
 {
@@ -165,7 +170,6 @@ int main(int argc, char *argv[])
 {
 	int ret = 0;
 	struct dir_entry *root_entry;
-	struct output_options output_opts;
 
 	time_t start = time(NULL);
 
@@ -231,11 +235,7 @@ int main(int argc, char *argv[])
 
 	sort_dentries(root_entry, 0);
 
-	output_opts.max_depth = max_depth;
-	output_opts.show_warn_at_bytes = warn_at_bytes;
-	output_opts.show_critical_at_bytes = critical_at_bytes;
-
-	output_print(stdout, root_entry, output_format, output_opts);
+	process_output(root_entry);
 
 	dir_free_entries(root_entry);
 
@@ -279,7 +279,10 @@ static int parse_args(int argc, char *argv[])
 					warn_at_bytes = human_size_to_bytes(optarg);
 				else if (strcmp(opt.name, "critical-at") == 0)
 					critical_at_bytes = human_size_to_bytes(optarg);
-
+				else if (strcmp(opt.name, "output-file") == 0) {
+					strcpy(output_file_path, optarg);
+					output_file_path_len = strlen(output_file_path);
+				}
 				break;
 		}
 
@@ -323,6 +326,36 @@ static int get_num_cpu_cores()
 	}
 
     return num_cores;
+}
+
+static int process_output(struct dir_entry *root_entry)
+{
+	struct output_options output_opts;
+	FILE *out;
+
+	output_opts.max_depth = max_depth;
+	output_opts.show_warn_at_bytes = warn_at_bytes;
+	output_opts.show_critical_at_bytes = critical_at_bytes;
+	
+
+	if (output_file_path_len) {
+		FILE *fp = fopen(output_file_path, "w");		
+
+		if (!fp) {
+			printf("Error opening output file path \"%s\" for writing!", output_file_path);
+			return -1;
+		}
+
+		out = fp;
+		// when writing to a file we don`t want any styles (colors for ex.)
+		output_opts.no_styles = 1; 
+	}
+	else 
+		out = stdout;
+
+	output_print(out, root_entry, output_format, output_opts);
+
+	return 0;
 }
 
 static void print_help() 
