@@ -365,7 +365,7 @@ static void print_help()
     printf("Options:\n");
     printf("  -s, --summarize                     Display only the total size for each argument\n");
     printf("  -d, --max-depth=N                   Limit depth of directory traversal\n");
-    printf("  -o, --output-format=FMT             Output format: \"text\" or \"json\"\n");
+    printf("  -o, --output-format=FMT             Output format: \"text\", \"json\" or \"html\"\n");
     printf("      --threads=N                     Number of threads to use\n");
     printf("      --time                          Show last file modification time\n");
     printf("  -h, --help                          Show this help message and exit\n");
