@@ -373,6 +373,7 @@ static void print_help()
 	printf("                                         ex: --warn-at=100M, warn-at=1G etc.\n");
 	printf("      --critical-at=[VALUE][UNIT]     If set and the size of the entry is greater than this value, the size will be printed in red\n");
 	printf("                                         ex: --critical-at=10G, critical-at=50G etc.\n");
+	printf("      --output-file=[FILE_PATH]       Writes the output to the given file path\n");
 	printf("\n");
 	printf("***** more arguments to be implemented soon (i hope) *****\n");
     printf("\n");
