@@ -22,4 +22,5 @@ While still in baby shoes, the target is to be fully compatible with "du", using
 - bdu -s /home (equivalent to du -s /home or du -hs /home - bdu by default prints the sizes in human readable format, for ex: 10G)
 - bdu --max-depth=2 --output-format=json /home
 - bdu --max-depth=1 --warn-at=100M --critical-at=20G /home - the size of entries greater than 100M will be colored yellow, and greater than 20G will be colored red - not necessarily useful, just for fun :)
+- bdu --max-depth=2 --output-format=json --output-file=./out.txt /home - writes the results in the specified file
 
