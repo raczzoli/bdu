@@ -21,8 +21,16 @@
 #include "output.h"
 
 static void print_size(FILE *fp, long int bytes, int leading_spaces);
+
+// json
 static void print_json(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
+
+// plain text
 static void print_plain_text(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
+
+// html
+static void print_html(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
+static void print_html_entries(FILE *fp, struct dir_entry *head, struct output_options options, int depth);
 
 
 void output_print(FILE *fp, struct dir_entry *head, const char *format, struct output_options options)
@@ -31,6 +39,8 @@ void output_print(FILE *fp, struct dir_entry *head, const char *format, struct o
 		print_json(fp, head, options, 0);
 	else if (strcmp(format, "text") == 0)
 		print_plain_text(fp, head, options, 0);
+	else if (strcmp(format, "html") == 0)
+		print_html(fp, head, options, 0);
 	else 
 		fprintf(fp, "Invalid output format!\n");
 }
@@ -83,15 +93,15 @@ static void print_plain_text(FILE *fp, struct dir_entry *head, struct output_opt
 	if (!options.no_styles)
 		if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
 			if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
-				fprintf(fp, "\033[31m"); // read
+				fprintf(fp, "\033[31m"); // red
 			else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
 				fprintf(fp, "\033[33m"); // yellow
 			else 
-				fprintf(fp, "\033[32m"); // yellow
+				fprintf(fp, "\033[32m"); // green
 		}
 
 	print_size(fp, head->bytes, 1);
-	
+
 	if (!options.no_styles)
 		fprintf(fp, "\033[0m"); // reset font color
 
@@ -109,6 +119,48 @@ static void print_plain_text(FILE *fp, struct dir_entry *head, struct output_opt
 		for (i=0;i<head->children_len;i++) {
 			print_plain_text(fp, head->children[i], options, depth+1);
 		}
+}
+
+static void print_html(FILE *fp, struct dir_entry *head, struct output_options options, int depth)
+{
+	fprintf(fp, "<!DOCTYPE html>\n<html lang=\"en\">\n");
+	fprintf(fp, "<head><meta charset=\"UTF-8\"><title>Disk Usage Report</title><style>body {font-family: monospace; background: #1e1e1e; color: #dcdcdc; padding: 20px;} ul {list-style-type: none; padding-left: 20px;} li {margin: 4px 0;} .size {display: inline-block; width: 80px; font-weight: bold;} .red {color: #ff5c5c;} .orange {color: #ffa500;} .yellow {color: #ffd700;} .green {color: #7fff00;}</style></head>\n");
+	fprintf(fp, "<body>");
+		fprintf(fp, "<h1>Disk Usage Report for %s</h1>", head->path);
+		fprintf(fp, "<ul>");
+			print_html_entries(fp, head, options, depth);
+		fprintf(fp, "</ul>\n");
+	fprintf(fp, "</body>\n");
+	fprintf(fp, "</html>\n");
+}
+
+static void print_html_entries(FILE *fp, struct dir_entry *head, struct output_options options, int depth)
+{
+	char size_cls[10];
+
+	if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
+		if (options.show_critical_at_bytes > 0 && head->bytes >= options.show_critical_at_bytes)
+			strcpy(size_cls, "red");
+		else if (options.show_warn_at_bytes > 0 && head->bytes >= options.show_warn_at_bytes)
+			strcpy(size_cls, "orange");
+		else 
+			strcpy(size_cls, "green");
+	}
+
+	fprintf(fp, "<li><span class=\"size %s\">", size_cls);//
+	print_size(fp, head->bytes, 0);
+	fprintf(fp, "</span> %s",head->path);
+	
+	if (depth < options.max_depth) {
+		if (head->children_len > 0)
+			for (int i=0;i<head->children_len;i++) {
+				fprintf(fp, "<ul>");
+				print_html_entries(fp, head->children[i], options, depth+1);
+				fprintf(fp, "</ul>");
+			}
+	}
+
+	fprintf(fp, "</li>");
 }
 
 static void print_size(FILE *fp, long int bytes, int leading_spaces)
