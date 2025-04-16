@@ -208,9 +208,12 @@ int compare_dentries(const void* a, const void* b)
 				: (dentry_b->bytes == dentry_a->bytes ? 0 : -1);
 }
 
-void sort_dentries(struct dir_entry *head, int depth)
+void sort_dentries(struct dir_entry **entries, int entries_len, int depth)
 {
-	int i;
+	if (!entries || !entries_len)
+		return;
+
+	qsort(entries, entries_len, sizeof(struct dir_entry *), compare_dentries);
 
 	/**
 	** we only sort the displayed children.
@@ -219,12 +222,11 @@ void sort_dentries(struct dir_entry *head, int depth)
 	**/
 	if (max_depth >= 0 && depth == max_depth)
 		return;
-	
-	if (head->children_len > 0) {
-		qsort(head->children, head->children_len, sizeof(struct dir_entry *), compare_dentries);
-		for (i=0;i<head->children_len;i++) {
-			sort_dentries(head->children[i], ++depth);
-		}
+
+	for (int i=0;i<entries_len;i++) {
+		struct dir_entry *head = entries[i];
+		if (head->children_len)
+			sort_dentries(head->children, head->children_len, depth+1);
 	}
 }
 
@@ -296,12 +298,9 @@ int main(int argc, char *argv[])
 
 	printf("-------------------------------------------\n");
 
+	sort_dentries(root_entries, root_entries_len, 0);
+
 	process_output();
-
-	/*
-	sort_dentries(root_entry, 0);
-
-	*/
 
 	dir_free_entries(root_entries, root_entries_len);
 
