@@ -97,7 +97,10 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 		}
 
 		if (!S_ISDIR(st.st_mode)) {
-			dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
+			if (S_ISREG(st.st_mode)) {
+				// we only count regular files
+				dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
+			}
 
 			continue;
 		}
