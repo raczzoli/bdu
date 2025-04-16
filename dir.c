@@ -123,13 +123,6 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 			return NULL;
 		}
 
-		/**
-		** if show_file_mtime = 1 we extract the date of the last modification to the entry, 
-		** and store it in dchild->last_mdate
-		**/
-		if (proc_mtime) 
-			dchild->last_mdate = dir_get_dentry_mdate(st.st_mtime);
-
 		dchild->parent = dentry;
 
 		if (dentry->children_len == 0)
@@ -167,7 +160,7 @@ char *dir_get_dentry_mdate(time_t mtime)
 		printf("Error allocating memory for date buffer!");
 		return NULL;
 	}
-
+	
 	struct tm *tm_info = localtime(&mtime);
 	strftime(date_str, 20, "%Y-%m-%d %H:%M:%S", tm_info);
 
@@ -192,18 +185,15 @@ int dir_free_entry(struct dir_entry *head)
 	if (!head)
 		return -1;
 
-	if (head->children_len > 0) 
-		for (int i=0;i<head->children_len;i++) 
-			dir_free_entry(head->children[i]);
-
+	if (head->children) {
+		dir_free_entries(head->children, head->children_len);
+	}
 
 	free(head->path);
 
-	if (head->children)
-		free(head->children);
-
-	if (head->last_mdate)
+	if (head->last_mdate) {
 		free(head->last_mdate);
+	}
 
 	pthread_mutex_destroy(&head->lock);
 
