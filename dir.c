@@ -158,7 +158,7 @@ void dir_sort_entries(struct dir_entry **entries, int entries_len, int max_depth
 		return;
 
 	sort_flags = flags;
-	
+
 	qsort(entries, entries_len, sizeof(struct dir_entry *), sort_entries_cb);
 
 	/**
@@ -182,19 +182,16 @@ static int sort_entries_cb(const void* a, const void* b)
 	struct dir_entry *dentry_a = *(struct dir_entry **)a;
 	struct dir_entry *dentry_b = *(struct dir_entry **)b;
 
-	if (sort_flags & SORT_BY_SIZE) {
-		ret = dentry_b->bytes > dentry_a->bytes 
+	if (sort_flags & SORT_BY_SIZE) 
+		ret = dentry_a->bytes < dentry_b->bytes 
 				? -1 
-				: (dentry_b->bytes == dentry_a->bytes ? 0 : 1);
-	}
-	else if (sort_flags & SORT_BY_NAME) {
+				: (dentry_a->bytes == dentry_b->bytes ? 0 : 1);
+	else if (sort_flags & SORT_BY_NAME) 
 		ret = strcasecmp(dentry_a->path, dentry_b->path);
-	}
-	else if (sort_flags & SORT_BY_DATE) {
-		ret = dentry_b->last_mtime > dentry_a->last_mtime 
+	else if (sort_flags & SORT_BY_DATE) 
+		ret = dentry_a->last_mtime < dentry_b->last_mtime 
 				? -1 
-				: (dentry_b->last_mtime == dentry_a->last_mtime ? 0 : 1);
-	}
+				: (dentry_a->last_mtime == dentry_b->last_mtime ? 0 : 1);
 
 	return (sort_flags & SORT_ASC) ? ret : -ret;
 }
