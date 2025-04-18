@@ -22,6 +22,8 @@ struct output_options {
 	long unsigned int show_warn_at_bytes;
 	long unsigned int show_critical_at_bytes;
 	unsigned int no_styles;
+	unsigned int human_readable;
+	unsigned int no_leading_tabs;
 };
 
 void output_print(FILE *fp, struct dir_entry **entries, int entries_len, const char *format, struct output_options options);

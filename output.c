@@ -20,7 +20,7 @@
 #include "dir.h"
 #include "output.h"
 
-static void print_size(FILE *fp, long int bytes, int leading_spaces);
+static void print_size(FILE *fp, long int bytes, int human_readable, int leading_spaces);
 
 // json
 static void print_json(FILE *fp, struct dir_entry **entries, int entries_len, struct output_options options, int depth);
@@ -63,7 +63,7 @@ static void print_json(FILE *fp, struct dir_entry **entries, int entries_len, st
 			fprintf(fp, "\"last-modified\":\"%s\",", head->last_mdate);
 	
 		fprintf(fp, "\"size-human\":\"");	
-		print_size(fp, head->bytes, 0);
+		print_size(fp, head->bytes, 1, 0);
 		fprintf(fp, "\"");
 		
 		if (depth < options.max_depth || options.max_depth < 0) {
@@ -97,8 +97,10 @@ void print_plain_text(FILE *fp, struct dir_entry **entries, int entries_len, str
 		if (!head)
 			continue;
 
-		for (int j=0;j<depth;j++)
-			printf("\t");
+		if (!options.no_leading_tabs) {
+			for (int j=0;j<depth;j++)
+				printf("\t");
+		}
 
 		if (!options.no_styles)
 			if (options.show_critical_at_bytes > 0 || options.show_warn_at_bytes) {
@@ -110,7 +112,7 @@ void print_plain_text(FILE *fp, struct dir_entry **entries, int entries_len, str
 					fprintf(fp, "\033[32m"); // green
 			}
 	
-		print_size(fp, head->bytes, 1);
+		print_size(fp, head->bytes, options.human_readable, 1);
 	
 		if (!options.no_styles)
 			fprintf(fp, "\033[0m"); // reset font color
@@ -158,7 +160,7 @@ static void print_html_entries(FILE *fp, struct dir_entry **entries, int entries
 		}
 	
 		fprintf(fp, "<li><span class=\"size %s\">", size_cls);
-		print_size(fp, head->bytes, 0);
+		print_size(fp, head->bytes, options.human_readable, 0);
 		fprintf(fp, "</span> ");
 
 		if (head->last_mdate) {
@@ -178,23 +180,32 @@ static void print_html_entries(FILE *fp, struct dir_entry **entries, int entries
 	fprintf(fp, "</ul>\n");
 }
 
-static void print_size(FILE *fp, long int bytes, int leading_spaces)
+static void print_size(FILE *fp, long int bytes, int human_readable, int leading_spaces)
 {
 	const char *units[] = { "B", "K", "M", "G", "T", "P" };
 	double fin_size = bytes;
 	int unit_cntr = 0;
+	int precision = 0;
+	int show_unit = 0;
 
-	while (1) {
-		if (fin_size >= 1024) {
-			fin_size /= 1024;
-			unit_cntr++;
+	if (human_readable) {
+		precision = 2;
+		show_unit = 1;
+
+		while (1) {
+			if (fin_size >= 1024) {
+				fin_size /= 1024;
+				unit_cntr++;
+			}
+			else 
+				break;
 		}
-		else 
-			break;
+	}
+	else {
+		leading_spaces = 0;
 	}
 
-	if (leading_spaces)
-		fprintf(fp, "%7.2f%s", fin_size, units[unit_cntr]);
-	else 
-		fprintf(fp, "%.2f%s", fin_size, units[unit_cntr]);
+	fprintf(fp, "%*.*f%s", leading_spaces, precision, fin_size, show_unit ? units[unit_cntr] : "");
+
+	return;
 }

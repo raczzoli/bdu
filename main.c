@@ -40,6 +40,8 @@ int root_entries_len = 0;
 int show_file_mtime = 0;
 int show_help = 0;
 int show_summary = 0;
+int show_in_bytes = 0;
+int show_no_leading_tabs = 0;
 int num_threads = 0;
 
 int max_depth = -1;
@@ -61,6 +63,8 @@ struct option cmdline_options[] =
 	{
 		// options without arguments
 		{"summarize",     no_argument, NULL, 's'},
+		{"in-bytes",     no_argument, &show_in_bytes, 1},
+		{"no-leading-tabs",     no_argument, &show_no_leading_tabs, 1},
 		{"time",     no_argument, &show_file_mtime, 1},
 		{"help",     no_argument, &show_help, 1},
 
@@ -306,7 +310,7 @@ static int parse_args(int argc, char *argv[])
 	int c;
 
 	while (1) {
-		c = getopt_long (argc, argv, "sd:o:",
+		c = getopt_long (argc, argv, "shd:o:",
 			cmdline_options, &option_index);
 
 		switch(c) {
@@ -378,12 +382,14 @@ static int get_num_cpu_cores()
 
 static int process_output()
 {
-	struct output_options output_opts = {.no_styles=0};
+	struct output_options output_opts = {.no_styles=0, .human_readable=0};
 	FILE *out;
 
 	output_opts.max_depth = max_depth;
 	output_opts.show_warn_at_bytes = warn_at_bytes;
 	output_opts.show_critical_at_bytes = critical_at_bytes;
+	output_opts.human_readable = !show_in_bytes;
+	output_opts.no_leading_tabs = show_no_leading_tabs;
 	
 
 	if (output_file_path_len) {
