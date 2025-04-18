@@ -406,12 +406,15 @@ static void print_help()
     printf("  -o, --output-format=FMT             Output format: \"text\", \"json\" or \"html\"\n");
     printf("      --threads=N                     Number of threads to use\n");
     printf("      --time                          Show last file modification time\n");
-    printf("  -h, --help                          Show this help message and exit\n");
+	printf("      --sort-by=[FIELD]               The field sorting whould be done after - \"size\", \"name\" or \"date\"\n");
+	printf("      --sort-order=[asc/desc]         Ascending or descending order\n");
 	printf("      --warn-at=[VALUE][UNIT]         If set and the size of the entry is greater than this value, the size will be printed in yellow\n");
 	printf("                                         ex: --warn-at=100M, warn-at=1G etc.\n");
 	printf("      --critical-at=[VALUE][UNIT]     If set and the size of the entry is greater than this value, the size will be printed in red\n");
 	printf("                                         ex: --critical-at=10G, critical-at=50G etc.\n");
 	printf("      --output-file=[FILE_PATH]       Writes the output to the given file path\n");
+	printf("\n");
+	printf("  -h, --help                          Show this help message and exit\n");
 	printf("\n");
 	printf("***** more arguments to be implemented soon (i hope) *****\n");
     printf("\n");
