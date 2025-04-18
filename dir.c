@@ -26,6 +26,10 @@
 
 #include "dir.h"
 
+static unsigned int sort_flags;
+
+static int sort_entries_cb(const void* a, const void* b) ;
+
 struct dir_entry *dir_create_dentry(char *path)
 {
 	struct dir_entry *entry = (struct dir_entry *)malloc(sizeof(struct dir_entry));
@@ -87,6 +91,12 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 	if (proc_mtime) 
 		dentry->last_mdate = dir_get_dentry_mdate(st.st_mtime);
 
+	/**
+	** last_mtime is stored all the time because it might be used
+	** while sorting by date - even if proc_mtime is 0
+	**/
+	dentry->last_mtime = st.st_mtime;
+
 	struct dirent *entry;
 	while ((entry = readdir(dir)) != NULL) {
 		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
@@ -141,6 +151,66 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 
 	return dentry;
 }
+
+void dir_sort_entries(struct dir_entry **entries, int entries_len, int max_depth, int depth, int flags)
+{
+	if (!entries || !entries_len)
+		return;
+
+	sort_flags = flags;
+
+	qsort(entries, entries_len, sizeof(struct dir_entry *), sort_entries_cb);
+
+	/**
+	** we only sort the displayed children.
+	** ex. if --max-depth=1 then we sort only the first level of children, 
+	** since the rest is not displayed, no need to sort it
+	**/
+	if (max_depth >= 0 && depth == max_depth)
+		return;
+
+	for (int i=0;i<entries_len;i++) {
+		struct dir_entry *head = entries[i];
+		if (head->children_len)
+			dir_sort_entries(head->children, head->children_len, max_depth, depth+1, flags);
+	}
+}
+
+static int sort_entries_cb(const void* a, const void* b) 
+{
+	struct dir_entry *dentry_a = *(struct dir_entry **)a;
+	struct dir_entry *dentry_b = *(struct dir_entry **)b;
+
+	if (sort_flags & SORT_BY_SIZE) {
+		if (sort_flags & SORT_ASC) 
+			return dentry_b->bytes > dentry_a->bytes 
+					? -1 
+					: (dentry_b->bytes == dentry_a->bytes ? 0 : 1);
+		else 
+			return dentry_b->bytes > dentry_a->bytes 
+					? 1 
+					: (dentry_b->bytes == dentry_a->bytes ? 0 : -1);
+	}
+	else if (sort_flags & SORT_BY_NAME) {
+		if (sort_flags & SORT_ASC) 
+			return strcasecmp(dentry_a->path, dentry_b->path);
+		else 
+			return strcasecmp(dentry_b->path, dentry_a->path);
+	}
+	else if (sort_flags & SORT_BY_DATE) {
+		if (sort_flags & SORT_ASC) 
+			return dentry_b->last_mtime > dentry_a->last_mtime 
+					? -1 
+					: (dentry_b->last_mtime == dentry_a->last_mtime ? 0 : 1);
+		else 
+			return dentry_b->last_mtime > dentry_a->last_mtime 
+					? 1 
+					: (dentry_b->last_mtime == dentry_a->last_mtime ? 0 : -1);
+	}
+
+	return 0;
+}
+
 
 void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes)
 {

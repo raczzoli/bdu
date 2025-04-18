@@ -19,10 +19,18 @@
 #ifndef DIR_H
 #define DIR_H
 
+#define SORT_ASC 0x0001
+#define SORT_DESC 0x0002
+
+#define SORT_BY_SIZE 0x0004
+#define SORT_BY_NAME 0x0008
+#define SORT_BY_DATE 0x0010
+
 struct dir_entry {
 	char *path;
 	int path_len;
 	size_t bytes;
+	time_t last_mtime;
 	char *last_mdate;
 	struct dir_entry *parent;
 	struct dir_entry **children;
@@ -32,6 +40,7 @@ struct dir_entry {
 
 struct dir_entry *dir_create_dentry(char *path);
 struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struct dir_entry*), int proc_mtime);
+void dir_sort_entries(struct dir_entry **entries, int entries_len, int max_depth, int depth, int flags);
 
 int dir_free_entry(struct dir_entry *head);
 int dir_free_entries(struct dir_entry **entries, int entries_len);

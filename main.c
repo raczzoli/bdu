@@ -46,6 +46,8 @@ int max_depth = -1;
 long unsigned int warn_at_bytes = 0;
 long unsigned int critical_at_bytes = 0;
 
+int sort_flags = 0;
+
 char output_format[6];
 
 pthread_t **threads;
@@ -69,6 +71,8 @@ struct option cmdline_options[] =
 		{"warn-at",     required_argument, NULL, 0},
 		{"critical-at",     required_argument, NULL, 0},
 		{"output-file",     required_argument, NULL, 0},
+		{"sort-by",     required_argument, NULL, 0},
+		{"sort-order",     required_argument, NULL, 0},
 
 		{0, 0, 0, 0}
 	};
@@ -198,38 +202,6 @@ void* thread_worker()
 	return NULL;
 }
 
-int compare_dentries(const void* a, const void* b) 
-{
-	struct dir_entry *dentry_a = *(struct dir_entry **)a;
-	struct dir_entry *dentry_b = *(struct dir_entry **)b;
-
-	return dentry_b->bytes > dentry_a->bytes 
-				? 1 
-				: (dentry_b->bytes == dentry_a->bytes ? 0 : -1);
-}
-
-void sort_dentries(struct dir_entry **entries, int entries_len, int depth)
-{
-	if (!entries || !entries_len)
-		return;
-
-	qsort(entries, entries_len, sizeof(struct dir_entry *), compare_dentries);
-
-	/**
-	** we only sort the displayed children.
-	** ex. if --max-depth=1 then we sort only the first level of children, 
-	** since the rest is not displayed, no need to sort it
-	**/
-	if (max_depth >= 0 && depth == max_depth)
-		return;
-
-	for (int i=0;i<entries_len;i++) {
-		struct dir_entry *head = entries[i];
-		if (head->children_len)
-			sort_dentries(head->children, head->children_len, depth+1);
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	int ret = 0;
@@ -238,15 +210,17 @@ int main(int argc, char *argv[])
 
 	ret = parse_args(argc, argv);
 
-	if (ret < 0) {
-		printf("Error parsing command line arguments!\n");
+	if (ret < 0) 
 		return -1;
-	}
-	
+
+		
 	if (show_help > 0) {
 		print_help();
 		return 0;
 	}
+
+	if (!sort_flags)
+		sort_flags = SORT_DESC | SORT_BY_SIZE;
 
 	/**
 	** we check if qlist has been initialized. If not, we initialize it. 
@@ -298,7 +272,7 @@ int main(int argc, char *argv[])
 
 	printf("-------------------------------------------\n");
 
-	sort_dentries(root_entries, root_entries_len, 0);
+	dir_sort_entries(root_entries, root_entries_len, max_depth, 0, sort_flags);
 
 	process_output();
 
@@ -347,6 +321,28 @@ static int parse_args(int argc, char *argv[])
 				else if (strcmp(opt.name, "output-file") == 0) {
 					strcpy(output_file_path, optarg);
 					output_file_path_len = strlen(output_file_path);
+				}
+				else if (strcmp(opt.name, "sort-by") == 0) {
+					if (strcmp(optarg, "size") == 0) 
+						sort_flags |= SORT_BY_SIZE;
+					else if (strcmp(optarg, "name") == 0)
+						sort_flags |= SORT_BY_NAME;
+					else if (strcmp(optarg, "date") == 0)
+						sort_flags |= SORT_BY_DATE;
+					else {
+						printf("Invalid sort field! Should be \"size\", \"name\" or \"date\".");
+						return -1;
+					}
+				}
+				else if (strcmp(opt.name, "sort-order") == 0) {
+					if (strcmp(optarg, "asc") == 0) 
+						sort_flags |= SORT_ASC;
+					else if (strcmp(optarg, "desc") == 0)
+						sort_flags |= SORT_DESC;
+					else {
+						printf("Invalid sort order! Should be \"asc\" or \"desc\"");
+						return -1;
+					}
 				}
 				break;
 		}
