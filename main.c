@@ -219,8 +219,18 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!sort_flags)
-		sort_flags = SORT_DESC | SORT_BY_SIZE;
+	/**
+	** if sort-order was not set, we default it to desc
+	**/
+	if (!(sort_flags & SORT_FULL_MASK))
+		sort_flags |= SORT_DESC;
+
+	/**
+	** if sort-by was not set, we default it to size
+	**/
+	if (!(sort_flags & SORT_BY_FULL_MASK))
+		sort_flags |= SORT_BY_SIZE;
+
 
 	/**
 	** we check if qlist has been initialized. If not, we initialize it. 

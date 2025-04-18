@@ -21,10 +21,12 @@
 
 #define SORT_ASC 0x0001
 #define SORT_DESC 0x0002
+#define SORT_FULL_MASK (SORT_ASC | SORT_DESC)
 
 #define SORT_BY_SIZE 0x0004
 #define SORT_BY_NAME 0x0008
 #define SORT_BY_DATE 0x0010
+#define SORT_BY_FULL_MASK (SORT_BY_SIZE | SORT_BY_NAME | SORT_BY_DATE)
 
 struct dir_entry {
 	char *path;
