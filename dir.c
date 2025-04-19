@@ -33,7 +33,6 @@ static int sort_entries_cb(const void* a, const void* b) ;
 struct dir_entry *dir_create_dentry(char *path)
 {
 	struct dir_entry *entry = (struct dir_entry *)malloc(sizeof(struct dir_entry));
-	int leading_slash = 1;
 
 	if (!entry) {
 		printf("Error allocating memory for dentry!\n");
@@ -42,13 +41,17 @@ struct dir_entry *dir_create_dentry(char *path)
 
 	entry->path_len = strlen(path);
 
-	if (path[entry->path_len-1] != '/') {
-		entry->path_len++;
-		leading_slash = 0;
+	if (path[entry->path_len-1] == '/') {
+		/**
+		** we don`t want to add the trailing "/" to the path... 
+		** that will be the job of dir_scan after it checked if 
+		** current path is not a symlink
+		**/
+		entry->path_len--;
 	}
 
 	entry->path = (char *) malloc(entry->path_len+1); // +1 for NULL
-	snprintf(entry->path, entry->path_len+1, "%s%s", path, !leading_slash ? "/" : "");
+	snprintf(entry->path, entry->path_len+1, "%s", path);
 
 	entry->last_mdate = NULL;
 	entry->bytes = 0;
@@ -68,19 +71,21 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 	struct stat st;
 
 	// we don`t list contents of /proc and /run
-	if (strcmp(dentry->path, "/proc/") == 0 || strcmp(dentry->path, "/run/") == 0) 
+	if (strcmp(dentry->path, "/proc") == 0 || strcmp(dentry->path, "/run") == 0) 
 		return NULL;
 
+	if (lstat(dentry->path, &st) == -1) {
+		printf("Error while lstat path %s (%s)\n", dentry->path, strerror(errno));
+		return NULL;
+	}
+
+	if (!S_ISDIR(st.st_mode)) // it might be a symlink
+		return NULL;
 
 	DIR *dir = opendir(dentry->path);
 
 	if (!dir) {
 		printf("Error opening path: %s (%s)\n", dentry->path, strerror(errno));
-		return NULL;
-	}
-
-	if (lstat(dentry->path, &st) == -1) {
-		printf("Error while lstat path %s (%s)\n", dentry->path, strerror(errno));
 		return NULL;
 	}
 
@@ -108,7 +113,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 
 		memset(full_path, 0, PATH_MAX-1);
 
-		sprintf(full_path, "%s%s", dentry->path, entry->d_name);
+		sprintf(full_path, "%s/%s", dentry->path, entry->d_name);
 	
 		if (lstat(full_path, &st) == -1) {
 			printf("Error while lstat path %s (%s)\n", full_path, strerror(errno));

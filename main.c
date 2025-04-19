@@ -141,7 +141,7 @@ int process_files_args(int argc, char **argv)
 		/**
 		** if no path was specified in the command line options we default it to "./"
 		**/
-		add_root_entry_if_directory("./");
+		add_root_entry_if_directory(".");
 	}
 
 	return 0;
@@ -310,7 +310,7 @@ static int parse_args(int argc, char *argv[])
 	int c;
 
 	while (1) {
-		c = getopt_long (argc, argv, "shd:o:",
+		c = getopt_long (argc, argv, "sd:o:",
 			cmdline_options, &option_index);
 
 		switch(c) {
@@ -422,6 +422,9 @@ static void print_help()
     printf("  -o, --output-format=FMT             Output format: \"text\", \"json\" or \"html\"\n");
     printf("      --threads=N                     Number of threads to use\n");
     printf("      --time                          Show last file modification time\n");
+	printf("      --in-bytes                      Outputs the size of the entries in raw bytes instead of human readable\n");
+	printf("      --no-leading-tabs               Doesn`t add the additional tabs in front of each row to display tree-like output,\n");
+	printf("                                         instead it only shows the results as a simple list\n");
 	printf("      --sort-by=[FIELD]               The field sorting whould be done after - \"size\", \"name\" or \"date\"\n");
 	printf("      --sort-order=[asc/desc]         Ascending or descending order\n");
 	printf("      --warn-at=[VALUE][UNIT]         If set and the size of the entry is greater than this value, the size will be printed in yellow\n");
