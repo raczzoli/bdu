@@ -16,6 +16,12 @@ While still in baby shoes, the target is to be fully compatible with "du", using
   - make
   - make install
 
+## For Fedora/Red Hat/Centos/Alma Linux users
+- Special thanks to Dávid Horváth (dacrhu) for building the RPM packages and making them available on COPR
+- Packages available on COPR at the following address: https://copr.fedorainfracloud.org/coprs/dacr/bdu/
+- Step 1 - dnf copr enable dacr/bdu
+- Step 2 - dnf install bdu
+
 ## Random example usages (consult --help for all options)
 - bdu --max-depth=2 /home
 - bdu --max-depth=2 --threads=12 /home (if "--threads" is not present the number of threads will be set to the number of (virtual) CPU cores available on the machine)
