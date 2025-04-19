@@ -17,7 +17,7 @@ While still in baby shoes, the target is to be fully compatible with "du", using
   - make install
 
 ## For Fedora/Red Hat/Centos/Alma Linux users
-- Special thanks to Dávid Horváth (dacrhu) for building the RPM packages and making them available on COPR
+### Special thanks to Dávid Horváth (dacrhu) for building the RPM packages and making them available on COPR
 - Packages available on COPR at the following address: https://copr.fedorainfracloud.org/coprs/dacr/bdu/
 - Step 1 - dnf copr enable dacr/bdu
 - Step 2 - dnf install bdu
