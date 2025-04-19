@@ -41,14 +41,16 @@ struct dir_entry *dir_create_dentry(char *path)
 
 	entry->path_len = strlen(path);
 
-	if (path[entry->path_len-1] == '/') {
-		/**
-		** we don`t want to add the trailing "/" to the path... 
-		** that will be the job of dir_scan after it checked if 
-		** current path is not a symlink
-		**/
+	/**
+	** with the exception of the very root path "/", 
+	** we don`t want trailing "/" in the path of the entry.
+	** Having paths like /var/lib/some_subentry/ (with the "/"
+	** at the end, fucks up the lstat, and even if /var/lib/some_subentry
+	** would be a symlink, having a trailing "/" it would result in a directory
+	** and we want to ignore them)
+	**/
+	if (entry->path_len > 1 && path[entry->path_len-1] == '/') 
 		entry->path_len--;
-	}
 
 	entry->path = (char *) malloc(entry->path_len+1); // +1 for NULL
 	snprintf(entry->path, entry->path_len+1, "%s", path);
@@ -75,7 +77,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 		return NULL;
 
 	if (lstat(dentry->path, &st) == -1) {
-		printf("Error while lstat path %s (%s)\n", dentry->path, strerror(errno));
+		printf("Error while lstat parent path %s (%s)\n", dentry->path, strerror(errno));
 		return NULL;
 	}
 
@@ -113,7 +115,17 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 
 		memset(full_path, 0, PATH_MAX-1);
 
-		sprintf(full_path, "%s/%s", dentry->path, entry->d_name);
+		/**
+		** Having a trailing "/" at the end of the dentry->path (parent directory) 
+		** is only allowed if "/" is the only character the path contains, 
+		** aka the scanned directory is the very root. Otherwise the parent entry 
+		** path shouldn`t contain the "/" character. We make sure of this in the 
+		** dir_create_dentry function.
+		**/ 
+		if (dentry->path_len == 1 && dentry->path[0] == '/')
+			sprintf(full_path, "/%s", entry->d_name);
+		else 
+			sprintf(full_path, "%s/%s", dentry->path, entry->d_name);
 	
 		if (lstat(full_path, &st) == -1) {
 			printf("Error while lstat path %s (%s)\n", full_path, strerror(errno));
