@@ -129,8 +129,6 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 			continue;
 		}
 
-		full_path[strlen(full_path)] = '/';
-
 		dchild = dir_create_dentry(full_path);
 
 		if (!dchild) {

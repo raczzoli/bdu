@@ -87,21 +87,8 @@ static void print_help();
 static int process_output();
 
 
-int add_root_entry_if_directory(char *path)
+int add_root_entry(char *path)
 {
-	struct stat st;
-	if (lstat(path, &st) == -1) {
-		printf("Error while lstat path %s (%s)\n", path, strerror(errno));
-		return -1;
-	}
-
-	/**
-	** we check if the current path is a directory or something else.
-	** we (obviously) don`t add only folders to the root_entries stack
-	**/
-	if (!S_ISDIR(st.st_mode)) 
-		return -1;
-
 	if (root_entries_len == 0)
 		root_entries = calloc(root_entries_len+1, sizeof(char *));
 	else 
@@ -134,14 +121,14 @@ int process_files_args(int argc, char **argv)
 	**/
 	if (argc > optind) {
 		for (int i=optind;i<argc;i++) {
-			add_root_entry_if_directory(argv[i]);
+			add_root_entry(argv[i]);
 		}
 	}
 	else {
 		/**
 		** if no path was specified in the command line options we default it to "./"
 		**/
-		add_root_entry_if_directory(".");
+		add_root_entry(".");
 	}
 
 	return 0;
