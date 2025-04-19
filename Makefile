@@ -26,6 +26,10 @@ clean:
 	rm -f $(OBJS) $(PROG)
 
 install:
+	mkdir -p $(DESTDIR)/usr/bin
+	install -m 0755 $(PROG) $(DESTDIR)/usr/bin/bdu
+
+install2:
 	sudo install $(PROG) /usr/bin/
 
 
