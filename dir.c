@@ -139,11 +139,12 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 
 		if (!S_ISDIR(st.st_mode)) {
 			if (S_ISREG(st.st_mode)) { // we only count regular files
+				/*
 				if (st.st_nlink > 1) { // if hardlink, we check if we already summed it
 					if (isreg_hardlinked_ino(st.st_ino)) 
 						continue;
 				}
-
+				*/
 				dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
 			}
 			continue;
