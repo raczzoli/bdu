@@ -139,7 +139,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 
 		if (!S_ISDIR(st.st_mode)) {
 			if (S_ISREG(st.st_mode)) { // we only count regular files
-				if (st.st_nlink > 1) { // if hardlink, we check if we already summed it
+				if (st.st_nlink > 0) { // if hardlink, we check if we already summed it
 					if (isreg_hardlinked_ino(st.st_ino)) 
 						continue;
 				}
@@ -152,8 +152,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 		dchild = dir_create_dentry(full_path);
 
 		if (!dchild) {
-			closedir(dir);
-			return NULL;
+			goto end;
 		}
 
 		dchild->parent = dentry;
@@ -170,8 +169,8 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 			dentry_scan_fn(dchild);
 	}
 
+end:
 	closedir(dir);
-
 	return dentry;
 }
 

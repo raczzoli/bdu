@@ -69,24 +69,22 @@ struct queue_elem *queue_add_elem(struct queue_list *list, void *data)
 
 struct queue_elem *queue_get_next_elem(struct queue_list *list)
 {
-	pthread_mutex_lock(&list->lock);
-
 	struct queue_elem *elem = NULL;
 
 	if (!list) {
 		printf("List is NULL\n");
-		goto end;
+		return NULL;
 	}
 
 	if (list->num_elements < 1) {
 		//printf("No more elements in queue list...\n");
-		goto end;
+		return NULL;
 	}
 
 	elem = list->head;
 
 	if (!elem)
-		goto end;
+		return NULL;
 
 	list->head = elem->next;
 	list->num_elements--;
@@ -100,8 +98,6 @@ struct queue_elem *queue_get_next_elem(struct queue_list *list)
 	else 
 		list->tail = NULL;
 
-end:
-	pthread_mutex_unlock(&list->lock);
 	return elem;
 }
 
