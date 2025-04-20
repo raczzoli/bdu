@@ -41,13 +41,11 @@ struct queue_list *queue_new_list()
 
 struct queue_elem *queue_add_elem(struct queue_list *list, void *data)
 {
-	pthread_mutex_lock(&list->lock);
-
 	struct queue_elem *elem = (struct queue_elem *)malloc(sizeof(struct queue_elem));
 
 	if (!elem) {
 		printf("Error allocating memory for queue element!\n");
-		goto end;
+		return NULL;
 	}
 
 	elem->next = NULL;
@@ -66,9 +64,6 @@ struct queue_elem *queue_add_elem(struct queue_list *list, void *data)
 	elem->data = data;
 	list->num_elements++;
 	
-end:	
-	pthread_mutex_unlock(&list->lock);
-
 	return elem;
 }
 

@@ -143,6 +143,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 					if (isreg_hardlinked_ino(st.st_ino)) 
 						continue;
 				}
+				
 				dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
 			}
 			continue;
@@ -297,7 +298,6 @@ static int isreg_hardlinked_ino(ino_t inode_num)
 
 	pthread_mutex_lock(&inodes_check_mutex);
 
-	/*
 	if (num_hardlinked_inodes > 0) {
 		for (int i=0;i<num_hardlinked_inodes;i++) {
 			if (hardlinked_inodes[i] == inode_num) {
@@ -314,7 +314,7 @@ static int isreg_hardlinked_ino(ino_t inode_num)
 
 	hardlinked_inodes[num_hardlinked_inodes] = inode_num;
 	num_hardlinked_inodes++;
-	*/
+
 end:
 	pthread_mutex_unlock(&inodes_check_mutex);
 	return found;

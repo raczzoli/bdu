@@ -183,7 +183,12 @@ void* thread_worker()
 		increment_active_workers();
 
 		dentry = (struct dir_entry *)elem->data;
+		
+		pthread_mutex_lock(&qlist->lock);
+
 		dir_scan(dentry, subdir_scan_callback, show_file_mtime);
+
+		pthread_mutex_unlock(&qlist->lock);
 
 		decrement_active_workers();
 
