@@ -278,6 +278,7 @@ int main(int argc, char *argv[])
 	process_output();
 
 	dir_free_entries(root_entries, root_entries_len);
+	dir_cleanup();
 
 	time_t end = time(NULL);
 	double elapsed = difftime(end, start);

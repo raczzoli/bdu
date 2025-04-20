@@ -50,4 +50,6 @@ int dir_free_entries(struct dir_entry **entries, int entries_len);
 void dir_sum_dentry_bytes(struct dir_entry *dentry, long int bytes);
 char *dir_get_dentry_mdate(time_t mtime);
 
+int dir_cleanup();
+
 #endif //DIR_H

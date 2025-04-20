@@ -27,8 +27,13 @@
 #include "dir.h"
 
 static unsigned int sort_flags;
+static ino_t *hardlinked_inodes;
+static int num_hardlinked_inodes = 0;
 
-static int sort_entries_cb(const void* a, const void* b) ;
+static pthread_mutex_t inodes_check_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static int sort_entries_cb(const void* a, const void* b);
+static int isreg_hardlinked_ino(ino_t inode_num);
 
 struct dir_entry *dir_create_dentry(char *path)
 {
@@ -81,7 +86,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 		return NULL;
 	}
 
-	if (!S_ISDIR(st.st_mode)) // it might be a symlink
+	if (!S_ISDIR(st.st_mode)) // it might be a symlink or a regular file by mistake
 		return NULL;
 
 	DIR *dir = opendir(dentry->path);
@@ -133,8 +138,13 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 		}
 
 		if (!S_ISDIR(st.st_mode)) {
-			if (S_ISREG(st.st_mode)) {
-				// we only count regular files
+			if (S_ISREG(st.st_mode)) { // we only count regular files
+
+				if (st.st_nlink > 1) { // if hardlink, we check if we already summed it
+					if (isreg_hardlinked_ino(st.st_ino)) 
+						continue;
+				}
+
 				dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
 			}
 
@@ -271,3 +281,44 @@ int dir_free_entry(struct dir_entry *head)
 
 	return 0;
 }
+
+int dir_cleanup()
+{
+	if (hardlinked_inodes) {
+		free(hardlinked_inodes);
+		hardlinked_inodes = NULL;
+	}
+	
+	pthread_mutex_destroy(&inodes_check_mutex);
+
+	return 0;
+}
+
+static int isreg_hardlinked_ino(ino_t inode_num)
+{
+	int found = 0;
+
+	pthread_mutex_lock(&inodes_check_mutex);
+
+	if (num_hardlinked_inodes > 0) {
+		for (int i=0;i<num_hardlinked_inodes;i++) {
+			if (hardlinked_inodes[i] == inode_num) {
+				found = 1;
+				goto end;
+			}
+		}
+	}
+
+	if (num_hardlinked_inodes == 0)
+		hardlinked_inodes = calloc(1, sizeof(ino_t));
+	else 
+		hardlinked_inodes = realloc(hardlinked_inodes, (num_hardlinked_inodes+1)*sizeof(ino_t));
+
+	hardlinked_inodes[num_hardlinked_inodes] = inode_num;
+	num_hardlinked_inodes++;
+
+end:
+	pthread_mutex_unlock(&inodes_check_mutex);
+	return found;
+}
+
