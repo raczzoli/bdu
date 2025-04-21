@@ -81,6 +81,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 	if (strcmp(dentry->path, "/proc") == 0 || strcmp(dentry->path, "/run") == 0) 
 		return NULL;
 
+	/*
 	if (lstat(dentry->path, &st) == -1) {
 		printf("Error while lstat parent path %s (%s)\n", dentry->path, strerror(errno));
 		return NULL;
@@ -88,6 +89,7 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 
 	if (!S_ISDIR(st.st_mode)) // it might be a symlink or a regular file by mistake
 		return NULL;
+*/
 
 	DIR *dir = opendir(dentry->path);
 
@@ -132,22 +134,32 @@ struct dir_entry *dir_scan(struct dir_entry *dentry, void (dentry_scan_fn)(struc
 		else 
 			sprintf(full_path, "%s/%s", dentry->path, entry->d_name);
 	
-		if (lstat(full_path, &st) == -1) {
-			printf("Error while lstat path %s (%s)\n", full_path, strerror(errno));
+		if (entry->d_type != DT_DIR) {
+			if (entry->d_type == DT_REG) {
+				
+				if (lstat(full_path, &st) == -1) {
+					printf("Error while lstat path %s (%s)\n", full_path, strerror(errno));
+					continue;
+				}
+
+				dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
+			}
+
 			continue;
 		}
 
+		/*
 		if (!S_ISDIR(st.st_mode)) {
 			if (S_ISREG(st.st_mode)) { // we only count regular files
 				if (st.st_nlink > 0) { // if hardlink, we check if we already summed it
 					if (isreg_hardlinked_ino(st.st_ino)) 
 						continue;
 				}
-				
 				dir_sum_dentry_bytes(dentry, st.st_blocks * 512);
 			}
 			continue;
 		}
+		*/
 
 		dchild = dir_create_dentry(full_path);
 
